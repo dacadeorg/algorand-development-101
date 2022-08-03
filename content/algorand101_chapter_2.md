@@ -1,44 +1,87 @@
-In this learning module, we will follow a tutorial to build the frontend for a marketplace contract.
-This tutorial assumes that you have already completed the [Connect a React Dapp to Algorand](/zrXXmmJpS_Sa-4x6c7bV4w)  learning module and continue in the same project.
+In this learning module, we will follow a tutorial to connect a React app to the Algorand testnet and deploy and interact with a marketplace smart contract using the Algorand JavaScript SDK.
 
 ### Prerequisites
 
-- [Node JS](https://nodejs.org/en/download/) - Please ensure you have Node.js v16 or higher installed.
+- You should have created an Algorand TEAL smart contract for the marketplace as described in our [Smart Contract Development](/CQV5jnJgT_2QfOK8sPjjpw) learning module.
+-  Please make sure you have [Node JS](https://nodejs.org/en/download/) v16 or higher installed.
 - You should have a basic understanding of [React](https://reactjs.org/): know how to use JSX, props, state, lifecycle methods, and hooks.
-- You should have followed the [Connect a React Dapp to Algorand](/zrXXmmJpS_Sa-4x6c7bV4w) learning module and have `react` v17.0.2, `react-scripts` v4.0.3, `algosdk` and `@randlabs/myalgo-connect` installed.
 
 ### Tech Stack
 
 We will use the following tech stack:
 
 - [React](https://reactjs.org/) - A JavaScript library for building user interfaces.
-- [Bootstrap](https://getbootstrap.com/) - A CSS framework.
 - [AlgoSDK](https://developer.algorand.org/docs/sdks/javascript/) - The official JavaScript library for communicating with the Algorand network.
 - [MyAlgoConnect](https://connect.myalgo.com/) - A Javascript library to securely sign transactions with My Algo Wallet
 
-## 1. Project Setup
+## 1. Algorand testnet wallet
+In this first section of the tutorial, we will set up a wallet on the Algorand testnet, which we will use later on to test the marketplace.
+ 
+### 1.1 Create MyAlgo Wallet account
+1. Go to https://wallet.myalgo.com/new-account, mark the checkbox that you read the terms and services and click continue. Please enter a password for your new account and make sure to remember it or to store it somewhere safe. Then click continue.
+2. On the next page, make sure to select `TESTNET` from the drop-down menu in the top right corner. Then click the "New Account" button.
+3. If you are not familiar with mnemonic phrases you can read about them using the link provided in the pop-up. Then click "continue".
+4. Write down your mnemonic phrase in a safe location, mark the "I have written down and backed up my 25-word mnemonic phrase in the correct order" checkbox and click "continue".
+5. Next, you must complete a small quiz where you must correctly name four words at specific positions of your mnemonic phrase. The idea of the quiz is to validate whether you correctly wrote down the mnemonic phrase.
+6. After completing the quiz, you can enter a name for your account and click "Create Account".
+7. Your testnet account is now created, and you should now see your wallet.
 
-Since we already have the important dependencies installed, we now only need to add our dependencies for the frontend, styling and formatting numbers:
+![](https://i.imgur.com/tyhvSyx.gif)
+
+
+### 1.2 Add funding to testnet wallet
+As you will need funding in the form of Algo tokens for interactions with the marketplace, we will need to add tokens to the newly created account. Algorand provides a testnet faucet to do so.
+1. First, copy your account address to the clipboard by clicking the clipboard icon next to the account name and address on the wallet page.
+2. Then open https://bank.testnet.algorand.network/, enter your account address as "target address", mark the "I am not a robot" checkbox and click "Dispense".
+3. 10 Algo tokens should have been added to your account. Go back to the wallet and check if your balance shows 10 Algos. It can take up to 20 seconds for the tokens to show up. If you want, you can repeat step 2 to add additional funding.
+
+If the dispensed funding doesn't show up after 20 seconds, make sure that you have selected the `TESTNET` environment in MyAlgo Wallet in the upper right corner and reload the page.
+
+
+![](https://i.imgur.com/bw3IUva.gif)
+    
+That's it! You have successfully created your testnet wallet. Next, we are going to set up the React project. 
+    
+## 2. Project Setup
+
+In the second section of this tutorial, we will set up the project and install the necessary dependencies.
+
+Make sure that you have `nodejs` v16 or higher installed:
 
 ```bash
-npm install react-bootstrap bootstrap bootstrap-icons react-toastify prop-types react-jazzicon
+node -v
 ```
 
-We will use `react-bootstrap` to handle the `Bootstrap` styling of our react components. We will use `react-toastify` to display notifications to the user, so we don't have to handle that ourselves. We will use `prop-types` to define component props as required. We will use `react-jazzicon` to display a wallet address as an identicon. Finally, we will use `bignumber.js` to format numbers.
+We will use the `create-react-app` utility to create a new React project:
 
+```bash
+npx create-react-app algorand-marketplace
+```
 
-### 1.1 index.js
+Let's cd into the newly created project:
 
-Let's open the `src/index.js` file and start adding our bootstrap component and styles:
+```bash
+cd algorand-marketplace
+```
 
+Unfortunately, `react-scripts` of version 5 is not compatible with the Algorand JavaScript SDK yet, so we should use `react-scripts` of version 4.0.3:
+
+```bash
+npm install react-scripts@4.0.3
+```
+
+Also, we will downgrade `react` to version 17, as not all of the frontend libraries we will install in a later learning module are compatible with version 18 yet:
+
+```bash
+npm install react@17.0.2 react-dom@17.0.2 @testing-library/react@12.1.4 react-error-overlay@6.0.9
+```
+
+After downgrading to React 17 you have to change the content `src/index.js` file to the following:
 ```js
 import React from 'react';
 import ReactDOM from 'react-dom';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
-import 'bootstrap-icons/font/bootstrap-icons.css';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import "react-toastify/dist/ReactToastify.min.css";
 
 ReactDOM.render(
     <React.StrictMode>
@@ -52,151 +95,449 @@ ReactDOM.render(
 // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
 reportWebVitals();
 ```
+Next, we need to install the `algosdk` library:
 
-### 1.2 utils
-
-The `src/utils/` directory should look like this if you followed the [Connect a React Dapp to Algorand](/zrXXmmJpS_Sa-4x6c7bV4w) learning module:
-
-```
-├── utils
-│   ├── constants.js
-│   ├── conversions.js
-│   └── marketplace.js
+```bash
+npm install algosdk
 ```
 
-#### 1.2.2 constants.js
-We are going to expand the `util/constants.js` file with one more variable, which we will need for the next step:
+Also, we will install the `@randlabs/myalgo-connect` library, which we will use to connect to the algorand wallet and sign transactions:
+
+```bash
+npm install @randlabs/myalgo-connect
+```
+
+Finally, we will install `raw-loader`, which we will use to import the smart contract TEAL files which we created in the [Smart Contract Development](/CQV5jnJgT_2QfOK8sPjjpw) learning module:
+
+```bash
+npm install raw-loader --save-dev
+```
+
+Thats it! Now we can start the project and see if everything is working:
+
+```bash
+npm start
+```
+
+## 3. Configuring connection to Algorand
+
+Now that we have a project, we can set up our connection to the Algroand testnet and test our smart contract using the JavaScript SDK.
+
+We create a `utils` folder in the `src` directory with the `src/utils/constants.js` file to define the configuration for our connection to the Algorand network. For accessing the testnet we use public nodes provided by https://algoexplorer.io.
+
+```js
+import algosdk from "algosdk";
+import MyAlgoConnect from "@randlabs/myalgo-connect";
+
+const config = {
+    algodToken: "",
+    algodServer: "https://node.testnet.algoexplorerapi.io",
+    algodPort: "",
+    indexerToken: "",
+    indexerServer: "https://algoindexer.testnet.algoexplorerapi.io",
+    indexerPort: "",
+}
+
+export const algodClient = new algosdk.Algodv2(config.algodToken, config.algodServer, config.algodPort)
+
+export const indexerClient = new algosdk.Indexer(config.indexerToken, config.indexerServer, config.indexerPort);
+
+export const myAlgoConnect = new MyAlgoConnect();
+```
+First, we define a config, which specifies the token, server and port for the algod API and the indexer API.
+Then, we create the `algodClient`, `indexerClient` and `myAlgoConnect`.
+The `algodClient` will be used to perform transactions and retrieve account information.
+The `indexerClient` allows searching the blockchain for certain transactions or applications.
+Finally, `myAlgoConnect` allows us to connect the wallet we created in section 1 and sign transactions.
+
+
+## 4. Implementing the Marketplace
+Now that we have the configuration for communicating with the Algorand APIs, we can implement the interactions with the marketplace.
+
+### 4.1 Smart contracts
+First we create a `contracts` folder in the `src` directory and copy our `marketplace_approval.teal` and `marketplace_clear.teal` created in the [Smart Contract Development](/CQV5jnJgT_2QfOK8sPjjpw) learning module into the `src/contracts` directory.
+
+### 4.2 Additional constants
+For the implementation of the marketplace, we need some additional constants. Add the following to `src/utils/constants.js`
+
 ```json
-//...
-export const ALGORAND_DECIMALS = 6;
+// ...
+export const minRound = 21540981;
+
+// https://github.com/algorandfoundation/ARCs/blob/main/ARCs/arc-0002.md
+export const marketplaceNote = "tutorial-marketplace:uv1"
+
+// Maximum local storage allocation, immutable
+export const numLocalInts = 0;
+export const numLocalBytes = 0;
+// Maximum global storage allocation, immutable
+export const numGlobalInts = 2; // Global variables stored as Int: count, sold
+export const numGlobalBytes = 3; // Global variables stored as Bytes: name, description, image
 ```
-The Algorand blockchain handels amounts in microAlgos. In order to display amounts in the frontend as Algos, we have to shift the comma by 6 decimals.
 
-#### 1.2.2 conversions.js
-We are going to expand `utils/conversions.js` with three more functions, which allow us to format a wallet address and convert amounts from Algos to microAlgos and vice versa. We will need these functions for the next steps.
+We define a `minRound` variable, which we will use later on to limit the search for transactions up to a specific round.
+Next, we define the a`marketplaceNote`, which is required to find products of the marketplace later on.
+Finally, we define the values `numLocalInts`, `numLocalBytes`, `numGlobalInts` `numGlobalBytes`, which will specify the storage allocation of a smart contract.
+
+### 4.3 Conversions
+Next, we create a `src/utils/conversions.js` file, that will contain functions which we will need for for converting strings to interact with the smart contract.
 ```js
-import {ALGORAND_DECIMALS} from "./constants";
-import BigNumber from "bignumber.js";
-
-//...
-
-// Truncate is done in the middle to allow for checking of first and last chars simply to ensure correct address
-export const truncateAddress = (address) => {
-    if (!address) return
-    return address.slice(0, 5) + "..." + address.slice(address.length - 5, address.length);
+export const base64ToUTF8String = (base64String) => {
+    return Buffer.from(base64String, 'base64').toString("utf-8")
 }
 
-// Amounts in microAlgos (e.g. 10500) are shown as algos (e.g. 10.5) in the frontend
-export const microAlgosToString = (num) => {
-    if (!num) return
-    let bigNumber = new BigNumber(num)
-    return bigNumber.shiftedBy(-ALGORAND_DECIMALS).toFixed(3);
-}
-
-// Convert an amount entered as algos (e.g. 10.5) to microAlgos (e.g. 10500)
-export const stringToMicroAlgos = (str) => {
-    if (!str) return
-    let bigNumber = new BigNumber(str)
-    return bigNumber.shiftedBy(ALGORAND_DECIMALS).toNumber();
+export const utf8ToBase64String = (utf8String) => {
+    return Buffer.from(utf8String, 'utf8').toString('base64')
 }
 ```
-The `truncateAddress` function truncates an address to allow for checking of first and last chars simply to ensure the correct address.
 
-The `microAlgosToString` and `stringToMicroAlgos` functions utilise `bignumber.js` to shift the comma of microAlgos or Algos value.
+### 4.4 Marketplace functionality
+Now, we create a `src/utils/marketplace.js` file, that will contain the functions that we will use to interact our smart contract and start with the imports and the definition of a `Product` class:
+```js
+import algosdk from "algosdk";
+import {
+    algodClient,
+    indexerClient,
+    marketplaceNote,
+    minRound,
+    myAlgoConnect,
+    numGlobalBytes,
+    numGlobalInts,
+    numLocalBytes,
+    numLocalInts
+} from "./constants";
+/* eslint import/no-webpack-loader-syntax: off */
+import approvalProgram from "!!raw-loader!../contracts/marketplace_approval.teal";
+import clearProgram from "!!raw-loader!../contracts/marketplace_clear.teal";
+import {base64ToUTF8String, utf8ToBase64String} from "./conversions";
 
-Now that we have our helper functions, we can start implementing our UI components.
+class Product {
+    constructor(name, image, description, price, sold, appId, owner) {
+        this.name = name;
+        this.image = image;
+        this.description = description;
+        this.price = price;
+        this.sold = sold;
+        this.appId = appId;
+        this.owner = owner;
+    }
+}
+```
+We import `algosdk`, as well as the constants and conversion functions we defined in the previous steps. Also, we import our `.teal` files as `approvalProgram` and `clearProgram`.
 
-### 1.3 App.js
+Then, we define a `Product` class, with the variables that define a product in the marketplace.
 
-We will set up the `App.js` file to render our UI. You can clear the content of the `App.js` created in the previous learning module, as we will fresh. Let's start with the imports:
+#### 4.4.1 Create Product
+Next we implement a `createProductAction` function, which will be used to deploy a smart contract to the blockchain. We also add the helper function `compileProgram`. Please add the following to `src/utils/marketplace.js`: 
+```js
+//...
+// Compile smart contract in .teal format to program
+const compileProgram = async (programSource) => {
+    let encoder = new TextEncoder();
+    let programBytes = encoder.encode(programSource);
+    let compileResponse = await algodClient.compile(programBytes).do();
+    return new Uint8Array(Buffer.from(compileResponse.result, "base64"));
+}
+
+// CREATE PRODUCT: ApplicationCreateTxn
+export const createProductAction = async (senderAddress, product) => {
+    console.log("Adding product...")
+
+    let params = await algodClient.getTransactionParams().do();
+    params.fee = algosdk.ALGORAND_MIN_TX_FEE;
+    params.flatFee = true;
+
+    // Compile programs
+    const compiledApprovalProgram = await compileProgram(approvalProgram)
+    const compiledClearProgram = await compileProgram(clearProgram)
+
+    // Build note to identify transaction later and required app args as Uint8Arrays
+    let note = new TextEncoder().encode(marketplaceNote);
+    let name = new TextEncoder().encode(product.name);
+    let image = new TextEncoder().encode(product.image);
+    let description = new TextEncoder().encode(product.description);
+    let price = algosdk.encodeUint64(product.price);
+
+    let appArgs = [name, image, description, price]
+
+    // Create ApplicationCreateTxn
+    let txn = algosdk.makeApplicationCreateTxnFromObject({
+        from: senderAddress,
+        suggestedParams: params,
+        onComplete: algosdk.OnApplicationComplete.NoOpOC,
+        approvalProgram: compiledApprovalProgram,
+        clearProgram: compiledClearProgram,
+        numLocalInts: numLocalInts,
+        numLocalByteSlices: numLocalBytes,
+        numGlobalInts: numGlobalInts,
+        numGlobalByteSlices: numGlobalBytes,
+        note: note,
+        appArgs: appArgs
+    });
+
+    // Get transaction ID
+    let txId = txn.txID().toString();
+
+    // Sign & submit the transaction
+    let signedTxn = await myAlgoConnect.signTransaction(txn.toByte());
+    console.log("Signed transaction with txID: %s", txId);
+    await algodClient.sendRawTransaction(signedTxn.blob).do();
+
+    // Wait for transaction to be confirmed
+    let confirmedTxn = await algosdk.waitForConfirmation(algodClient, txId, 4);
+
+    // Get the completed Transaction
+    console.log("Transaction " + txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
+
+    // Get created application id and notify about completion
+    let transactionResponse = await algodClient.pendingTransactionInformation(txId).do();
+    let appId = transactionResponse['application-index'];
+    console.log("Created new app-id: ", appId);
+    return appId;
+}
+```
+The `createProductAction` function takes the parameters `senderAdress`, which is the address of the creator of the product and an object `product`, which contains the data for the new product. The function looks like a lot of code but is quite straightforward.
+    
+First, transaction parameters, including the transaction fee, are configured.
+Then, the teal files are compiled, as the algod API requires them as `Uint8Array`. Next, the note and the app args (which contain the variables for the newly created product) are also converted to `Uint8Array`.
+    
+Next, the `ApplicationCreateTxn` is built. Here, the sender, params, compiled approval and clear program, arguments, note and the storage allocation settings declared in `constants.js` are passed.
+
+Afterwards, the transaction is signed using myAlgoConnect. The `signTransaction` function will open a pop-up, requiring the user to enter their wallet password and approve the transaction.
+
+Then, the transaction is sent, and its confirmation is awaited.
+
+Finally, the `appId` of the newly created app is returned.
+
+#### 4.4.2 Buy product
+As a next step, we will implement a `buyProductAction` function which is used to buy a product that was added to the marketplace using the `createProductAction` function. In our marketplace smart contract developed in [Smart Contract Development](/CQV5jnJgT_2QfOK8sPjjpw) learning module buying a product is done by grouping two different transactions together in a group transaction. A `ApplicationCallTx` and a `PaymentTxn`. Please add the following to `src/utils/marketplace.js`:
 
 ```js
-import React, {useState} from "react";
-import Cover from "./components/Cover";
+//...
+// BUY PRODUCT: Group transaction consisting of ApplicationCallTxn and PaymentTxn
+export const buyProductAction = async (senderAddress, product, count) => {
+    console.log("Buying product...");
+
+    let params = await algodClient.getTransactionParams().do();
+    params.fee = algosdk.ALGORAND_MIN_TX_FEE;
+    params.flatFee = true;
+
+    // Build required app args as Uint8Array
+    let buyArg = new TextEncoder().encode("buy")
+    let countArg = algosdk.encodeUint64(count);
+    let appArgs = [buyArg, countArg]
+
+    // Create ApplicationCallTxn
+    let appCallTxn = algosdk.makeApplicationCallTxnFromObject({
+        from: senderAddress,
+        appIndex: product.appId,
+        onComplete: algosdk.OnApplicationComplete.NoOpOC,
+        suggestedParams: params,
+        appArgs: appArgs
+    })
+
+    // Create PaymentTxn
+    let paymentTxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+        from: senderAddress,
+        to: product.owner,
+        amount: product.price * count,
+        suggestedParams: params
+    })
+
+    let txnArray = [appCallTxn, paymentTxn]
+
+    // Create group transaction out of previously build transactions
+    let groupID = algosdk.computeGroupID(txnArray)
+    for (let i = 0; i < 2; i++) txnArray[i].group = groupID;
+
+    // Sign & submit the group transaction
+    let signedTxn = await myAlgoConnect.signTransaction(txnArray.map(txn => txn.toByte()));
+    console.log("Signed group transaction");
+    let tx = await algodClient.sendRawTransaction(signedTxn.map(txn => txn.blob)).do();
+
+    // Wait for group transaction to be confirmed
+    let confirmedTxn = await algosdk.waitForConfirmation(algodClient, tx.txId, 4);
+
+    // Notify about completion
+    console.log("Group transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
+}
+```
+The `buyProductAction` function takes the parameters `senderAdress`, which is the address of the buyer of the product, an object `product`, which is the product that will be bought, and an integer variable `count`, specifying how many products will be bought. 
+
+Then, again, first, the parameters and arguments for the transactions are built. Next, the two transactions required for the group transaction are created. We send the payment to the product owner and use the price multiplied by the count as the amount. Next, the transactions are grouped, and a `groupID` is computed. 
+
+Finally, the transaction is sent, and its confirmation is awaited.
+
+#### 4.4.3 Delete product
+We go on with implementing a `deleteProductAction` function. Its goal is to delete a product represented by an application by sending a `ApplicationDeleteTxn`. Please add the following to `src/utils/marketplace.js`:
+    
+```js
+//...
+// DELETE PRODUCT: ApplicationDeleteTxn
+export const deleteProductAction = async (senderAddress, index) => {
+    console.log("Deleting application...");
+
+    let params = await algodClient.getTransactionParams().do();
+    params.fee = algosdk.ALGORAND_MIN_TX_FEE;
+    params.flatFee = true;
+
+    // Create ApplicationDeleteTxn
+    let txn = algosdk.makeApplicationDeleteTxnFromObject({
+        from: senderAddress, suggestedParams: params, appIndex: index,
+    });
+
+    // Get transaction ID
+    let txId = txn.txID().toString();
+
+    // Sign & submit the transaction
+    let signedTxn = await myAlgoConnect.signTransaction(txn.toByte());
+    console.log("Signed transaction with txID: %s", txId);
+    await algodClient.sendRawTransaction(signedTxn.blob).do();
+
+    // Wait for transaction to be confirmed
+    const confirmedTxn = await algosdk.waitForConfirmation(algodClient, txId, 4);
+
+    // Get the completed Transaction
+    console.log("Transaction " + txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
+
+    // Get application id of deleted application and notify about completion
+    let transactionResponse = await algodClient.pendingTransactionInformation(txId).do();
+    let appId = transactionResponse['txn']['txn'].apid;
+    console.log("Deleted app-id: ", appId);
+}
+```
+
+The `deleteProductAction` function takes the parameters `senderAddress`, which is the address of the account that wants to delete the product and an `index` which is the appId of the product that should be deleted.
+The logic is similar to the `createProductAction` and `buyProductAction`. After building the transaction params, the `ApplicationDeleteTxn` is created, signed, submitted, and its confirmation awaited.
+
+#### 4.4.4 Get products
+As a final function for our marketplace, we need to implement a `getProductsAction` function, searching for available products on the blockchain, fetching them, and returning them. For this, we will utilise Algorand's [Indexer API](https://developer.algorand.org/docs/get-details/indexer/), which can be accessed using the `indexerClient` created in our `constants.js` file.
+Please add the following to `src/utils/marketplace.js`:
+```js
+//...
+// GET PRODUCTS: Use indexer
+export const getProductsAction = async () => {
+    console.log("Fetching products...")
+    let note = new TextEncoder().encode(marketplaceNote);
+    let encodedNote = Buffer.from(note).toString("base64");
+
+    // Step 1: Get all transactions by notePrefix (+ minRound filter for performance)
+    let transactionInfo = await indexerClient.searchForTransactions()
+        .notePrefix(encodedNote)
+        .txType("appl")
+        .minRound(minRound)
+        .do();
+    let products = []
+    for (const transaction of transactionInfo.transactions) {
+        let appId = transaction["created-application-index"]
+        if (appId) {
+            // Step 2: Get each application by application id
+            let product = await getApplication(appId)
+            if (product) {
+                products.push(product)
+            }
+        }
+    }
+    console.log("Products fetched.")
+    return products
+}
+
+const getApplication = async (appId) => {
+    try {
+        // 1. Get application by appId
+        let response = await indexerClient.lookupApplications(appId).includeAll(true).do();
+        if (response.application.deleted) {
+            return null;
+        }
+        let globalState = response.application.params["global-state"]
+
+        // 2. Parse fields of response and return product
+        let owner = response.application.params.creator
+        let name = ""
+        let image = ""
+        let description = ""
+        let price = 0
+        let sold = 0
+
+        const getField = (fieldName, globalState) => {
+            return globalState.find(state => {
+                return state.key === utf8ToBase64String(fieldName);
+            })
+        }
+
+        if (getField("NAME", globalState) !== undefined) {
+            let field = getField("NAME", globalState).value.bytes
+            name = base64ToUTF8String(field)
+        }
+
+        if (getField("IMAGE", globalState) !== undefined) {
+            let field = getField("IMAGE", globalState).value.bytes
+            image = base64ToUTF8String(field)
+        }
+
+        if (getField("DESCRIPTION", globalState) !== undefined) {
+            let field = getField("DESCRIPTION", globalState).value.bytes
+            description = base64ToUTF8String(field)
+        }
+
+        if (getField("PRICE", globalState) !== undefined) {
+            price = getField("PRICE", globalState).value.uint
+        }
+
+        if (getField("SOLD", globalState) !== undefined) {
+            sold = getField("SOLD", globalState).value.uint
+        }
+
+        return new Product(name, image, description, price, sold, appId, owner)
+    } catch (err) {
+        return null;
+    }
+}
+```
+
+First, we will look for transactions with which products got created. We are doing this by performing a [note field search](https://developer.algorand.org/docs/get-details/indexer/?from_query=note%20field%20searc#note-field-searching) on all transactions using `indexerClient.searchForTransactions().notePrefix(encodedNote)`.
+As an additional filter we only include application related transactions with `.txType("appl")`. As searching all transactions would take too long, we also add a `minRound` filter to limit the search up to a certain point in the chain's history. Once we have all transactions containing the `appId`s of the created applications, we fetch each application using `indexerClient.lookupApplications(appId)`. If the application is already deleted, we return null. Otherwhise, we use the response to extract the application's global state and associate the base64 encoded state keys to our product variables. The values of the keys are used to build our product object. Values, which were stored as bytes, are encoded as base64 strings and have to be converted to utf8. Integer values can be accessed directly.
+
+Finally, we build a product object, add it to the products array and return all products.
+
+### 4.5 Adding the Marketplace to the app
+
+Lastly, we are going to add the functionality of the marketplace to our app. Open the `src/App.js` file and change the code to the following:
+
+```js
+import React, {useEffect, useState} from "react";
 import './App.css';
-import Wallet from "./components/Wallet";
-import {Container, Nav} from "react-bootstrap";
-// import Products from "./components/marketplace/Products";
-// import {Notification} from "./components/utils/Notifications";
-import {indexerClient, myAlgoConnect} from "./utils/constants";
-import coverImg from "./assets/img/sandwich.jpg"
-//..
-```
+import MyAlgoConnect from "@randlabs/myalgo-connect";
+import {getProductsAction} from "./utils/marketplace";
 
-We import the `Wallet` and `Cover` components and the `coverImg` image file. All of which have not been created yet. We also import our `algodClient` and `myAlgoConnect` from `src/utils/constants.js`
-
-For now, the `Notification` and `Products` components will remain uncommented as we will implement them later.
-
-Let's create our `App` component now:
-
-```js
-//..
 const App = function AppWrapper() {
 
     const [address, setAddress] = useState(null);
-    const [name, setName] = useState(null);
-    const [balance, setBalance] = useState(0);
-
-    const fetchBalance = async (accountAddress) => {
-        indexerClient.lookupAccountByID(accountAddress).do()
-            .then(response => {
-                const _balance = response.account.amount;
-                setBalance(_balance);
-            })
-            .catch(error => {
-                console.log(error);
-            });
-    };
+    const [products, setProducts] = useState([]);
 
     const connectWallet = async () => {
-        myAlgoConnect.connect()
+        new MyAlgoConnect().connect()
             .then(accounts => {
                 const _account = accounts[0];
                 setAddress(_account.address);
-                setName(_account.name);
-                fetchBalance(_account.address);
             }).catch(error => {
             console.log('Could not connect to MyAlgo wallet');
             console.error(error);
         })
     };
 
-    const disconnect = () => {
-        setAddress(null);
-        setName(null);
-        setBalance(null);
-    };
-//..
-```
+    useEffect(() => {
+        getProductsAction().then(products => {
+            setProducts(products)
+        });
+    }, []);
 
-The `connectWallet` function uses `myAlgoConnect` to connect to the wallet and then sets the `account`. It also calls `fetchBalance`, which utilises the `algodClient` to retrieve the account information and set the `balance`. Finally, the disconnect function disconnects our app from the wallet by setting address, name and balance to `null`.
-
-Let's return the JSX for our `App` component:
-
-```js
-//..
-   return (
+    return (
         <>
-            {/* <Notification /> */}
             {address ? (
-                <Container fluid="md">
-                    <Nav className="justify-content-end pt-3 pb-5">
-                        <Nav.Item>
-                            <Wallet
-                                address={address}
-                                name={name}
-                                amount={balance}
-                                disconnect={disconnect}
-                                symbol={"ALGO"}
-                            />
-                        </Nav.Item>
-                    </Nav>
-                    <main>
-                        {/* <Products address={address} fetchBalance={fetchBalance}/> */}
-                    </main>
-                </Container>
+                products.forEach((product) => console.log(product))
             ) : (
-                <Cover name={"Street Food"} coverImg={coverImg} connect={connectWallet}/>
+                <button onClick={connectWallet}>CONNECT WALLET</button>
             )}
         </>
     );
@@ -205,798 +546,17 @@ Let's return the JSX for our `App` component:
 export default App;
 ```
 
-If the user is connected to the wallet, we display our dapp. If they aren't, we render the `Cover` component.
+This code is just for testing purposes. We try to connect to the wallet, and if we are connected, we fetch the products. Then we display the products in the console, making use of the `getProductsAction` function that we just created.
+If we are not connected, we display a button that will connect to the wallet by calling the `connectWallet` function defined above.
 
-We pass a `name` for our dapp and a `coverImg` as props to the `Cover` component. We also pass a `connect` function to connect to the wallet.
-
-The dapp consists of the `Wallet` component, which displays the user's account address and balance. We also show the `Products` component, which we will implement later.
-The `Wallet` needs the account address, the user's balance, a symbol for the currency we display, and a `disconnect` function to log out of the wallet as props.
-
-Now let's create the components we already used.
-
-## 2. Components
-
-In this tutorial section, we will create the custom components we will use in our dapp.
-
-The components directory will look like this:
-
-```
-├── components
-│   ├── marketplace
-│   ├── utils
-│   ├── Cover.jsx
-│   └── Wallet.jsx
-```
-
-We will start with the `Cover` component.
-
-### 2.1 Cover.jsx
-
-Create a `components` folder in the `src` directory and create a `src/components/Cover.jsx` file with the following code:
-
-```js
-import React from 'react';
-import {Button} from "react-bootstrap";
-import PropTypes from 'prop-types';
-
-const Cover = ({name, coverImg, connect}) => {
-    return (
-        <div className="d-flex justify-content-center flex-column text-center bg-black min-vh-100">
-            <div className="mt-auto text-light mb-5">
-                <div
-                    className=" ratio ratio-1x1 mx-auto mb-2"
-                    style={{maxWidth: "320px"}}
-                >
-                    <img src={coverImg} alt=""/>
-                </div>
-                <h1>{name}</h1>
-                <p>Please connect your wallet to continue.</p>
-                <Button
-                    onClick={() => connect()}
-                    variant="outline-light"
-                    className="rounded-pill px-3 mt-3"
-                >
-                    Connect Wallet
-                </Button>
-            </div>
-            <p className="mt-auto text-secondary">Powered by Algorand</p>
-        </div>
-    );
-};
-
-Cover.propTypes = {
-    name: PropTypes.string,
-    coverImg: PropTypes.string,
-    connect: PropTypes.func
-};
-
-export default Cover;
-```
-
-This component is pretty simple. If it receives the `name`, `connect` and `coverImg` as props, we render the `coverImg` and the `name` of the dapp. We also display a `Connect Wallet` button that calls the `connect` function when clicked.
-
-#### 2.1.1 Cover Image
-
-Since we are using a cover image, we need to import the `coverImg` image file.
-For this tutorial, we chose a `sandwich.jpg` image that you can find [here](https://github.com/dacadeorg/algorand-react-marketplace/blob/master/src/assets/img/sandwich.jpg). We create a `src/assets/img` directory and store the image there `src/assets/img/sandwich.jpg`.
-
-Now let's continue with the `Identicon` component.
-
-### 2.2 Indenticon.jsx
-The indenticon component will be used to display a visual representation of a wallet address to identify an account's address quickly.
-
-Create a `utils` folder in the `components` directory and create a `src/components/utils/Indenticon.jsx` file with the following code:
-
-```js
-import Jazzicon from "react-jazzicon";
-import PropTypes from "prop-types";
-
-const Identicon = ({size, address, ...rest}) => (
-    <div {...rest} style={{width: `${size}px`, height: `${size}px`}}>
-        <Jazzicon diameter={size} seed={parseInt(address.slice(2, 10), 16)}/>
-    </div>
-);
-
-Identicon.propTypes = {
-    size: PropTypes.number.isRequired,
-    address: PropTypes.string.isRequired
-};
-
-export default Identicon;
-```
-
-We receive a `size` and account `address` which will be used to create the identicon. To modify the components' classes and style from where the component is used, we also take additional props as `...rest`.
-
-Next, we will create the `Wallet` component.
-
-### 2.3 Wallet.jsx
-
-The wallet component will display the user's account address, name, identicon, balance, and logout button. Create a `components/Wallet.jsx` file with the following code:
-
-```js
-import React from 'react';
-import {Dropdown, Spinner, Stack} from 'react-bootstrap';
-import {microAlgosToString, truncateAddress} from '../utils/conversions';
-import Identicon from './utils/Identicon'
-import PropTypes from "prop-types";
-
-const Wallet = ({address, name, amount, symbol, disconnect}) => {
-    if (!address) {
-        return null;
-    }
-    return (
-        <>
-            <Dropdown>
-                <Dropdown.Toggle variant="light" align="end" id="dropdown-basic"
-                                 className="d-flex align-items-center border rounded-pill py-1">
-                    {amount ? (
-                        <>
-                            {microAlgosToString(amount)}
-                            <span className="ms-1"> {symbol}</span>
-                        </>
-                    ) : (
-                        <Spinner animation="border" size="sm" className="opacity-25"/>
-                    )}
-                    <Identicon address={address} size={28} className="ms-2 me-1"/>
-                </Dropdown.Toggle>
-
-                <Dropdown.Menu className="shadow-lg border-0">
-                    <Dropdown.Item href={`https://testnet.algoexplorer.io/address/${address}`}
-                                   target="_blank">
-                        <Stack direction="horizontal" gap={2}>
-                            <i className="bi bi-person-circle fs-4"/>
-                            <div className="d-flex flex-column">
-                                {name && (<span className="font-monospace">{name}</span>)}
-                                <span className="font-monospace">{truncateAddress(address)}</span>
-                            </div>
-                        </Stack>
-                    </Dropdown.Item>
-                    <Dropdown.Divider/>
-                    <Dropdown.Item as="button" className="d-flex align-items-center" onClick={() => {
-                        disconnect();
-                    }}>
-                        <i className="bi bi-box-arrow-right me-2 fs-4"/>
-                        Disconnect
-                    </Dropdown.Item>
-                </Dropdown.Menu>
-            </Dropdown>
-        </>
-    )
-};
-
-Wallet.propTypes = {
-    address: PropTypes.string,
-    name: PropTypes.string,
-    amount: PropTypes.number,
-    symbol: PropTypes.string,
-    disconnect: PropTypes.func
-};
-
-export default Wallet;
-
-```
-
-We receive the `address`, the account `name`, the user balance (`amount`), and the `symbol` of the currency we display as props. We also receive a `disconnect` function to log out of the wallet. As described earlier, these are passed from the `App` component.
-
-Now we should be ready to run our dapp and see if we can log in, log out, and see our balance and address. This only works if you have a created a MyAlgo Wallet account with funding on it, as descriped in our [Connect a React Dapp to Algorand](/zrXXmmJpS_Sa-4x6c7bV4w) learning module.
-
-Run the dapp:
+Now you can start the app:
 
 ```bash
 npm start
 ```
 
-The app should now look and behave like this:
+And you should see something like this:
 
-![](https://i.imgur.com/b1bCxk0.gif)
+![](https://i.imgur.com/jKdyJLU.gif)
 
-### 2.4 utils
-
-Let's next work on some more utility components. The `utils` directory will look like this:
-
-```
-├── components
-│   ├── utils
-│   │   ├── Identicon.jsx
-│   │   ├── Loader.jsx
-│   │   └── Notifications.jsx
-```
-
-We already have the `Identicon` component. Let's create the `Loader` component next.
-
-#### 2.4.1 utils/Loader.jsx
-
-The `Loader` component will display a loading animation. Create a new `components/utils/Loader.jsx` file with the following code:
-
-```js
-import React from "react";
-import {Spinner} from "react-bootstrap";
-
-const Loader = () => (
-    <div className="d-flex justify-content-center">
-        <Spinner animation="border" role="status" className="opacity-25">
-            <span className="visually-hidden">Loading...</span>
-        </Spinner>
-    </div>
-);
-
-export default Loader;
-```
-
-This component is pretty simple. It just displays the bootstrap `Spinner` component.
-
-#### 2.4.2 utils/Notifications.jsx
-
-The `Notifications` component will be used to display notifications to the user.
-Create a new `components/utils/Notifications.jsx` file with the following code:
-
-```js
-import React from "react";
-import {ToastContainer} from "react-toastify";
-import PropTypes from "prop-types";
-
-const Notification = () => (
-    <ToastContainer
-        position="bottom-center"
-        autoClose={5000}
-        hideProgressBar
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable={false}
-        pauseOnHover
-    />
-);
-
-const NotificationSuccess = ({text}) => (
-    <div>
-        <i className="bi bi-check-circle-fill text-success mx-2"/>
-        <span className="text-secondary mx-1">{text}</span>
-    </div>
-);
-
-const NotificationError = ({text}) => (
-    <div>
-        <i className="bi bi-x-circle-fill text-danger mx-2"/>
-        <span className="text-secondary mx-1">{text}</span>
-    </div>
-);
-
-const Props = {
-    text: PropTypes.string,
-};
-
-const DefaultProps = {
-    text: "",
-};
-
-NotificationSuccess.propTypes = Props;
-NotificationSuccess.defaultProps = DefaultProps;
-
-NotificationError.propTypes = Props;
-NotificationError.defaultProps = DefaultProps;
-
-export {Notification, NotificationSuccess, NotificationError};
-```
-
-This component uses the `react-toastify` library to display notifications.
-We distinguish between success and error notifications and otherwise display the `text` as a string.
-The `Notification` component is implemented in the `App` component.
-
-### 2.5 marketplace
-
-Now we create our final component, where we will create the UI for the marketplace. The `components/marketplace` directory will look like this:
-
-```
-├── components
-│   ├── marketplace
-│   │   ├── AddProduct.jsx
-│   │   ├── Product.jsx
-│   │   └── Products.jsx
-│   ├── utils
-│   ├── Cover.jsx
-│   └── Wallet.jsx
-```
-
-Let's start with the `Products` component.
-
-#### 2.5.1 Products.jsx
-
-The `Products` component will display a list of products.
-It will be the main component of the marketplace that will contain the `AddProducts` and `Product` components.
-Create a new `marketplace` folder in the `components` directory and create a `components/marketplace/Products.jsx` file.
-
-Let's start with the imports:
-
-```js
-import React, {useEffect, useState} from "react";
-import {toast} from "react-toastify";
-import AddProduct from "./AddProduct";
-import Product from "./Product";
-import Loader from "../utils/Loader";
-import {NotificationError, NotificationSuccess} from "../utils/Notifications";
-import {buyProductAction, createProductAction, deleteProductAction, getProductsAction,} from "../../utils/marketplace";
-import PropTypes from "prop-types";
-import {Row} from "react-bootstrap";
-//...
-```
-
-We import the `AddProduct` and `Product` components that we will create later.
-We also import the `Loader` and `NotificationSuccess` and `NotificationError` components from the `utils` directory.
-Finally, we import the `buyProductAction`, `createProductAction`,  `deleteProductAction` and `getProductsAction` utility functions from the `src/utils/marketplace.js` file we created in the [Connect a React Dapp to Algorand](/zrXXmmJpS_Sa-4x6c7bV4w) learning module.
-
-Let's create our main `Products` component and a `getProducts` function, which we use to fetch the list of products:
-
-```js
-//...
-const Products = ({address, fetchBalance}) => {
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(false);
-    
-    const getProducts = async () => {
-        setLoading(true);
-        getProductsAction()
-            .then(products => {
-                if (products) {
-                    setProducts(products);
-                }
-            })
-            .catch(error => {
-                console.log(error);
-            })
-            .finally(_ => {
-                setLoading(false);
-            });
-    };
-
-    useEffect(() => {
-        getProducts();
-    }, []);
-//...
-```
-As props, the products component takes the `address` of the connected wallet and a `fetchBalance` function to refresh the balance after performing interactions with the blockchain.
-
-
-We set the `loading` state to `true` when we fetch the products and set the `products` state to the list of products. We use the `getProductsAction` utility that we imported earlier to fetch the products.
-Once we have the products, we set the `loading` state to `false`.
-
-Next we create the `createProduct` function:
-
-```js
-//...
-	const createProduct = async (data) => {
-	    setLoading(true);
-	    createProductAction(address, data)
-	        .then(() => {
-	            toast(<NotificationSuccess text="Product added successfully."/>);
-	            getProducts();
-	            fetchBalance(address);
-	        })
-	        .catch(error => {
-	            console.log(error);
-	            toast(<NotificationError text="Failed to create a product."/>);
-	            setLoading(false);
-	        })
-	};
-//...
-```
-
-We receive the product data as a parameter and use the `createProductAction` utility function to create the product. We then fetch the products again and display a success message or an error message if the product could not be created.
-
-Also, we create a `buyProduct` function:
-
-```js
-//...
-	const buyProduct = async (product, count) => {
-	    setLoading(true);
-	    buyProductAction(address, product, count)
-	        .then(() => {
-	            toast(<NotificationSuccess text="Product bought successfully"/>);
-	            getProducts();
-	            fetchBalance(address);
-	        })
-	        .catch(error => {
-	            console.log(error)
-	            toast(<NotificationError text="Failed to purchase product."/>);
-	            setLoading(false);
-	        })
-	};
-//...
-```
-
-We need the `product` and `count` (how many products will be bought) and call the `buyProductAction` utility function to buy the product. We the product was bought successfully, we fetch the products again and display a success message or an error message if the product could not be bought.
-
-Finally, we create a `deleteProduct` function:
-```js
-//...
-    const deleteProduct = async (product) => {
-        setLoading(true);
-        deleteProductAction(address, product.appId)
-            .then(() => {
-                toast(<NotificationSuccess text="Product deleted successfully"/>);
-                getProducts();
-                fetchBalance(address);
-            })
-            .catch(error => {
-                console.log(error)
-                toast(<NotificationError text="Failed to delete product."/>);
-                setLoading(false);
-            })
-    };
-//...
-```
-It takes the product that should be deleted and calls the `deleteProductAction` utility function with the products `appId`. Again, we fetch the products on success and display an error message otherwise.
-
-Now can return the `Products` component and write the JSX code:
-
-```js
-//...
-	if (loading) {
-	    return <Loader/>;
-	}
-	return (
-	    <>
-	        <div className="d-flex justify-content-between align-items-center mb-4">
-	            <h1 className="fs-4 fw-bold mb-0">Street Food</h1>
-	            <AddProduct createProduct={createProduct}/>
-	        </div>
-	        <Row xs={1} sm={2} lg={3} className="g-3 mb-5 g-xl-4 g-xxl-5">
-	            <>
-	                {products.map((product, index) => (
-	                    <Product
-	                        address={address}
-	                        product={product}
-	                        buyProduct={buyProduct}
-	                        deleteProduct={deleteProduct}
-	                        key={index}
-	                    />
-	                ))}
-	            </>
-	        </Row>
-	    </>
-	);
-};
-
-Products.propTypes = {
-    address: PropTypes.string.isRequired,
-    fetchBalance: PropTypes.func.isRequired
-};
-
-export default Products;
-```
-
-In the not yet created `AddProduct` component, we pass the `createProduct` function that we created earlier as a prop.
-
-Then we map the list of `products` to the not yet created `Product` component, which is a component that will display the individual product as a card. We pass the `product`'s data as props to the `Product` component to render the product. We also pass the `buyProduct` function as a prop.
-
-Finally, we export the `Products` component.
-
-Let's now create the `Product` component that we just discussed.
-
-#### 2.3.2 Product.jsx
-
-This file will contain the `Product` component, which will display the individual product as a card. In the `marketplace` directory, create a `components/marketplace/Product.jsx` file with the following code:
-
-```js
-import React, {useState} from "react";
-import PropTypes from "prop-types";
-import {Badge, Button, Card, Col, FloatingLabel, Form, Stack} from "react-bootstrap";
-import {microAlgosToString, truncateAddress} from "../../utils/conversions";
-import Identicon from "../utils/Identicon";
-
-const Product = ({address, product, buyProduct, deleteProduct}) => {
-    const {name, image, description, price, sold, appId, owner} =
-        product;
-
-    const [count, setCount] = useState(1)
-
-    return (
-        <Col key={appId}>
-            <Card className="h-100">
-                <Card.Header>
-                    <Stack direction="horizontal" gap={2}>
-                        <span className="font-monospace text-secondary">{truncateAddress(owner)}</span>
-                        <Identicon size={28} address={owner}/>
-                        <Badge bg="secondary" className="ms-auto">
-                            {sold} Sold
-                        </Badge>
-                    </Stack>
-                </Card.Header>
-                <div className="ratio ratio-4x3">
-                    <img src={image} alt={name} style={{objectFit: "cover"}}/>
-                </div>
-                <Card.Body className="d-flex flex-column text-center">
-                    <Card.Title>{name}</Card.Title>
-                    <Card.Text className="flex-grow-1">{description}</Card.Text>
-                    <Form className="d-flex align-content-stretch flex-row gap-2">
-                        <FloatingLabel
-                            controlId="inputCount"
-                            label="Count"
-                            className="w-25"
-                        >
-                            <Form.Control
-                                type="number"
-                                value={count}
-                                min="1"
-                                max="10"
-                                onChange={(e) => {
-                                    setCount(Number(e.target.value));
-                                }}
-                            />
-                        </FloatingLabel>
-                        <Button
-                            variant="outline-dark"
-                            onClick={() => buyProduct(product, count)}
-                            className="w-75 py-3"
-                        >
-                            Buy for {microAlgosToString(price) * count} ALGO
-                        </Button>
-                        {product.owner === address &&
-                            <Button
-                                variant="outline-danger"
-                                onClick={() => deleteProduct(product)}
-                                className="btn"
-                            >
-                                <i className="bi bi-trash"></i>
-                            </Button>
-                        }
-                    </Form>
-                </Card.Body>
-            </Card>
-        </Col>
-    );
-};
-
-Product.propTypes = {
-    address: PropTypes.string.isRequired,
-    product: PropTypes.instanceOf(Object).isRequired,
-    buyProduct: PropTypes.func.isRequired,
-    deleteProduct: PropTypes.func.isRequired
-};
-
-export default Product;
-
-```
-This component is pretty simple. We get the product data: the `name`, `image`, `description`, `price`, how many times it has been `sold`, `appId`, and `owner` from the `product` prop. Also, we get a `buyProduct` and a `deleteProduct` function.
-
-We display the product data as a bootstrap `Card` component. We add an input field to select how many products should be bought (`count`) and call the `buyProduct` function when the "Buy" button is clicked, passing our `product` and the `count`. We also have a "Delete" button, which is only shown when the current account is the owner of the product. It calls the `deleteProduct` function. 
-
-In the next section, we will create the `AddProduct` component.
-
-#### 2.3.3 AddProduct.jsx
-
-This file will contain the `AddProduct` component, which will display a form to add a new product. In the `marketplace` directory, create a `components/marketplace/AddProduct.jsx` file. We will start with the import statements and the `AddProduct` component:
-
-```js
-import React, {useCallback, useState} from "react";
-import PropTypes from "prop-types";
-import {Button, FloatingLabel, Form, Modal} from "react-bootstrap";
-import {stringToMicroAlgos} from "../../utils/conversions";
-
-const AddProduct = ({createProduct}) => {
-    const [name, setName] = useState("");
-    const [image, setImage] = useState("");
-    const [description, setDescription] = useState("");
-    const [price, setPrice] = useState(0);
-
-    const isFormFilled = useCallback(() => {
-        return name && image && description && price > 0
-    }, [name, image, description, price]);
-
-    const [show, setShow] = useState(false);
-
-    const handleClose = () => setShow(false);
-    const handleShow = () => setShow(true);
-//...
-```
-
-We create state variables for the product data and a boolean state variable that we use to store the state of the modal with the form for the product data.
-
-In the next step, we will create the button and form that will be displayed in the popup modal:
-
-```js
-//...
-    return (
-        <>
-            <Button
-                onClick={handleShow}
-                variant="dark"
-                className="rounded-pill px-0"
-                style={{width: "38px"}}
-            >
-                <i className="bi bi-plus"></i>
-            </Button>
-            <Modal show={show} onHide={handleClose} centered>
-                <Modal.Header closeButton>
-                    <Modal.Title>New Product</Modal.Title>
-                </Modal.Header>
-                <Form>
-                    <Modal.Body>
-                        <FloatingLabel
-                            controlId="inputName"
-                            label="Product name"
-                            className="mb-3"
-                        >
-                            <Form.Control
-                                type="text"
-                                onChange={(e) => {
-                                    setName(e.target.value);
-                                }}
-                                placeholder="Enter name of product"
-                            />
-                        </FloatingLabel>
-                        <FloatingLabel
-                            controlId="inputUrl"
-                            label="Image URL"
-                            className="mb-3"
-                        >
-                            <Form.Control
-                                type="text"
-                                placeholder="Image URL"
-                                value={image}
-                                onChange={(e) => {
-                                    setImage(e.target.value);
-                                }}
-                            />
-                        </FloatingLabel>
-                        <FloatingLabel
-                            controlId="inputDescription"
-                            label="Description"
-                            className="mb-3"
-                        >
-                            <Form.Control
-                                as="textarea"
-                                placeholder="description"
-                                style={{ height: "80px" }}
-                                onChange={(e) => {
-                                    setDescription(e.target.value);
-                                }}
-                            />
-                        </FloatingLabel>
-                        <FloatingLabel
-                            controlId="inputPrice"
-                            label="Price in ALGO"
-                            className="mb-3"
-                        >
-                            <Form.Control
-                                type="text"
-                                placeholder="Price"
-                                onChange={(e) => {
-                                    setPrice(stringToMicroAlgos(e.target.value));
-                                }}
-                            />
-                        </FloatingLabel>
-                    </Modal.Body>
-                </Form>
-                <Modal.Footer>
-                    <Button variant="outline-secondary" onClick={handleClose}>
-                        Close
-                    </Button>
-                    <Button
-                        variant="dark"
-                        disabled={!isFormFilled()}
-                        onClick={() => {
-                            createProduct({
-                                name,
-                                image,
-                                description,
-                                price
-                            });
-                            handleClose();
-                        }}
-                    >
-                        Save product
-                    </Button>
-                </Modal.Footer>
-            </Modal>
-        </>
-    );
-};
-
-AddProduct.propTypes = {
-    createProduct: PropTypes.func.isRequired,
-};
-
-export default AddProduct;
-```
-
-This file has a lot of code, but it's pretty straightforward. We create a modal that will be displayed when the user clicks on the `New Product` button.
-Inside the modal, we display a form with the product data fields.
-
-If the user clicks on the "Save product" button, we call the `createProduct` function that we passed as a prop with the product data as parameters.
-
-We are done with the components, now we need to do a bit of cleanup in our `App.js` file, and we are ready to go!
-
-## 3. Finishing the dapp
-
-In this last section, we will put the final touches on the dapp.
-
-### 3.1. Update `App.js`
-
-Let's finish the dapp by adding our `Products` and `Notification` components to our `App.js` file.
-
-Let's start by uncommenting the import of the `Products` and `Notification` components, so it looks like this:
-
-```js
-//...
-import {Container, Nav} from "react-bootstrap";
-import Products from "./components/marketplace/Products";
-import {Notification} from "./components/utils/Notifications";
-import {indexerClient, myAlgoConnect} from "./utils/constants";
-//...
-```
-
-Now we need to uncomment the `<Notification />` component in the JSX:
-
-```js
-//...
-    return (
-        <>
-            <Notification />
-            {address ? (
-//...
-```
-
-And we also need to uncomment the `<Products />` component:
-
-```js
-//...
-<main>
-    <Products address={address} fetchBalance={fetchBalance}/>
-</main>
-//...
-```
-
-Do a final test. See if your products are displayed and if you can create a new product and buy it.
-
-The dapp should now behave like this:
-
-![](https://i.imgur.com/SDuaSzq.gif)
-
-
-### 3.2. Cleanup
-
-We can do a little bit of housekeeping in our project. In our `src` directory, we can remove the `logo.svg` and `setupTests.js` files.
-
-In the `public` directory, we can add our `favicon.ico`, `logo192.png`, `logo512.png`, and `manifest.json` files that fit our project.
-
-We should also change the `title` and `description` of our dapp in the `index.html` file in the `public` directory.
-
-### 3.3. Deploy to GitHub Pages
-
-In the last section, we will briefly look at how to deploy our dapp to GitHub Pages.
-
-1. First, add your project to GitHub. If you don't know how to do this, check out this [GitHub guide](https://docs.github.com/en/get-started/importing-your-projects-to-github/importing-source-code-to-github/adding-an-existing-project-to-github-using-the-command-line).
-
-2. Install the [gh-pages](https://www.npmjs.com/package/gh-pages) package. This will allow us to deploy our dapp to GitHub Pages.
-
-```bash
-npm install gh-pages
-```
-
-3. In the package.json file, add the following lines:
-
-- At the top of the file, add the following line:
-  ```
-  "homepage": "https://${GithubUsername}.github.io/${RepositoryName}",
-  ```
-  Replace `${GithubUsername}` and `${RepositoryName}` with your GitHub username and the repository name.
-- add the following lines at the bottom of the `scripts` section:
-  ```
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d build"
-  ```
-
-4. Push your changes to GitHub.
-5. Run `npm run deploy` to deploy your dapp to a new GitHub Pages branch.
-6. Go to your repository on github.com and follow the instructions: ![](https://i.imgur.com/DacKkj4.png)
-
-- Click on settings.
-- Navigate to the "Pages" section.
-- Select the gh-pages branch as the default branch for your new page.
-- Click "Save".
-
-Now you are done, and you should be able to see your dapp on `https://${GithubUsername}.github.io/${RepositoryName}`. It can take up to a minute for the page to deploy.
-
-Awesome! You have successfully created your first Algorand dapp. Now you can go ahead and create your own dapp in our challenge and receive feedback and earn some Algorand!
+Great! Now you can see the products in the console. Continue the next learning module to learn how to build the fronted components for your marketplace dapp.

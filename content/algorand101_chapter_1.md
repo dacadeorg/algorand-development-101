@@ -1,562 +1,403 @@
-In this learning module, we will follow a tutorial to connect a React app to the Algorand testnet and deploy and interact with a marketplace smart contract using the Algorand JavaScript SDK.
+This learning module consists of a tutorial, where you will learn how to create a smart contract for a decentralized marketplace on the Algorand blockchain.
+
+We will use PyTeal to write our smart contracts.
 
 ### Prerequisites
 
-- You should have created an Algorand TEAL smart contract for the marketplace as described in our [Smart Contract Development](/CQV5jnJgT_2QfOK8sPjjpw) learning module.
--  Please make sure you have [Node JS](https://nodejs.org/en/download/) v16 or higher installed.
-- You should have a basic understanding of [React](https://reactjs.org/): know how to use JSX, props, state, lifecycle methods, and hooks.
+- Have some basic knowledge of Blockchain technology and smart contracts.
+- Have some basic Python knowledge.
+- Be comfortable using a terminal.
 
 ### Tech Stack
 
 We will use the following tech stack:
 
-- [React](https://reactjs.org/) - A JavaScript library for building user interfaces.
-- [AlgoSDK](https://developer.algorand.org/docs/sdks/javascript/) - The official JavaScript library for communicating with the Algorand network.
-- [MyAlgoConnect](https://connect.myalgo.com/) - A Javascript library to securely sign transactions with My Algo Wallet
+- [PyTeal](https://pypi.org/project/pyteal/) - A Python language binding for Algorand Smart Contracts.
+- [Algorand Sandbox](https://github.com/algorand/sandbox) - A fast way to run a Algorand developmment environment locally
 
-## 1. Algorand testnet wallet
-In this first section of the tutorial, we will set up a wallet on the Algorand testnet, which we will use later on to test the marketplace.
- 
-### 1.1 Create MyAlgo Wallet account
-1. Go to https://wallet.myalgo.com/new-account, mark the checkbox that you read the terms and services and click continue. Please enter a password for your new account and make sure to remember it or to store it somewhere safe. Then click continue.
-2. On the next page, make sure to select `TESTNET` from the drop-down menu in the top right corner. Then click the "New Account" button.
-3. If you are not familiar with mnemonic phrases you can read about them using the link provided in the pop-up. Then click "continue".
-4. Write down your mnemonic phrase in a safe location, mark the "I have written down and backed up my 25-word mnemonic phrase in the correct order" checkbox and click "continue".
-5. Next, you must complete a small quiz where you must correctly name four words at specific positions of your mnemonic phrase. The idea of the quiz is to validate whether you correctly wrote down the mnemonic phrase.
-6. After completing the quiz, you can enter a name for your account and click "Create Account".
-7. Your testnet account is now created, and you should now see your wallet.
+## 1. Setup
+In this first section of the tutorial, we will set up our development environment and project.
 
-![](https://i.imgur.com/tyhvSyx.gif)
+You will need to have a version of Python 3 (at least 3.6.x) installed. You can check the currently installed version using
+```bash
+python3 --version
+```
+or on Windows
+```bash
+python --version
+```
+We recommend using a code editor that supports code completion and syntax highlighting for Python to help you write PyTeal code, like Visual Studio Code or Atom. We will use Visual Studio Code for this learning module.
+
+### 1.1 Project Setup
+First, we will set up our project. Please create a new root directory for our project and call it something like `algorand-marketplace-contract`.
+
+### 1.2 Create venv and install PyTeal
+Next we use the Python module [venv](https://docs.python.org/3/library/venv.html) to set up a Python virtual environment. A virtual environment  can have its own independent set of installed Python packages in its site directories, so packages required for a project do not have to be installed globally.
+
+Open a terminal and go into your root directory. Then run 
+```bash
+python3 -m venv venv
+```
+or on Windows:
+```bash
+python -m venv venv
+```
+to create a virtual environment in the subdirectory `venv`.
+Next, run
+```bash
+source venv/bin/activate
+```
+or on Windows
+```bash
+venv\Scripts\activate.bat
+```
+to activate the virtual environment.
+
+Finally, install PyTeal inside the virtual environment using 
+```bash
+pip install pyteal
+```
+
+## 2. Define smart contract
+For this Algorand tutorial, we want to create a decentraliced marketplace, were products can be offered, bought and deleted. To build this marketplace using the Algorand blockchain we are going to utilise Algorand's [smart contract feature](https://developer.algorand.org/docs/get-details/dapps/smart-contracts/apps/). These smart contracts are also referred to as applications. The marketplace and its products is going to be represented by multiple applications, were each of the applications stands for one product. Buying one of these products will be done by calling the application and performing a payment to the creator of the application.
+
+In this section, we are going to write the smart contract that will represent a product. For the Algorand blockchain, smart contracts are written in the smart contract language [TEAL](https://developer.algorand.org/docs/get-details/dapps/avm/teal/). To simplify the creation of TEAL code, the Python library PyTeal allows to write contracts in Python and offers a `compileProgram` method to produce TEAL code. TEAL source can then be compiled into bytecode and deployed to the blockchain as an application.
+
+We will write the smart contract with PyTeal in `marketplace_contract.py`. Please create the file in the project's root directory and open the file in an editor.
+
+First we will import PyTeal using
+```python=
+from pyteal import *
+```
+
+In PyTeal, two datatypes are available: Byte slices (`Byte`) and integers (`Int`).
+Multiple variables define a product in our marketplace. It has a name, an image URL and a description, stored as byte slices. Also, it has a price and a variable "sold", which counts how often a product has already got sold. These variables are stored as integers.
+The variables are stored in the application's global state, consisting of key-value pairs, where keys are byte slices, and values can be integers or byte slices.
+
+In PyTeal we first create a class `Product`. While classes are not required for the smart contract to work, it helps in understanding the code. We also define two subclasses. The class `Variables` defines the keys for our Global state variable. The class `AppMethods` defines methods available for the product. Here, only "buy" is added for now.
+```python=
+from pyteal import *
 
 
-### 1.2 Add funding to testnet wallet
-As you will need funding in the form of Algo tokens for interactions with the marketplace, we will need to add tokens to the newly created account. Algorand provides a testnet faucet to do so.
-1. First, copy your account address to the clipboard by clicking the clipboard icon next to the account name and address on the wallet page.
-2. Then open https://bank.testnet.algorand.network/, enter your account address as "target address", mark the "I am not a robot" checkbox and click "Dispense".
-3. 10 Algo tokens should have been added to your account. Go back to the wallet and check if your balance shows 10 Algos. It can take up to 20 seconds for the tokens to show up. If you want, you can repeat step 2 to add additional funding.
+class Product:
+    class Variables:
+        name = Bytes("NAME")
+        image = Bytes("IMAGE")
+        description = Bytes("DESCRIPTION")
+        price = Bytes("PRICE")
+        sold = Bytes("SOLD")
 
-If the dispensed funding doesn't show up after 20 seconds, make sure that you have selected the `TESTNET` environment in MyAlgo Wallet in the upper right corner and reload the page.
+    class AppMethods:
+        buy = Bytes("buy")
+```
+
+### 2.1 Create a product
+Next, we are going to define what should happen when creating the application.
+
+Therefore, we add the following method to our `Product` class:
+
+```python=15
+    def application_creation(self):
+        return Seq([
+            Assert(Txn.application_args.length() == Int(4)),
+            Assert(Txn.note() == Bytes("tutorial-marketplace:uv1")),
+            Assert(Btoi(Txn.application_args[3]) > Int(0)),
+            App.globalPut(self.Variables.name, Txn.application_args[0]),
+            App.globalPut(self.Variables.image, Txn.application_args[1]),
+            App.globalPut(self.Variables.description, Txn.application_args[2]),
+            App.globalPut(self.Variables.price, Btoi(Txn.application_args[3])),
+            App.globalPut(self.Variables.sold, Int(0)),
+            Approve()
+        ])
+```
+Multiple things happen here. First, we use the PyTeal expression `Assert` to perform validity checks:
+- The number of arguments attached to the transaction should be exactly 4. 
+- The note attached to the transaction must be `"tutorial-marketplace:uv1"`, which we define to be the note that marks a product within our marketplace. Our goal here was to create a unique note that helps us finding the products later on. Conventions on how to build a note can be found [here](https://github.com/algorandfoundation/ARCs/blob/main/ARCs/arc-0002.md).
+The fourth argument, which is used to represent the product's price, has to be greater than zero.
+
+If all the checks succeed, the next lines will be executed. Here we store the transaction arguments into the application's global state using `App.globalPut`. As transaction arguments are transmitted as byte slices, we can store the first three arguments as name, image and description without conversion. The fourth argument representing the price has to be converted to `Int` using the PyTeal method `Btoi()`. Finally, we set the sold variable of the product to `0`.
+
+### 2.2 Buy a product
+Next, we are going to write a handler for the buy interaction.
+Buying a product will be represented as a group transaction where a smart contract call transaction and a payment transaction to the product owner are grouped together.
+
+We add the following method to our `Product` class
+```python=28
+    def buy(self):
+        count = Txn.application_args[1]
+        valid_number_of_transactions = Global.group_size() == Int(2)
+
+        valid_payment_to_seller = And(
+            Gtxn[1].type_enum() == TxnType.Payment,
+            Gtxn[1].receiver() == Global.creator_address(),
+            Gtxn[1].amount() == App.globalGet(self.Variables.price) * Btoi(count),
+            Gtxn[1].sender() == Gtxn[0].sender(),
+        )
+
+        can_buy = And(valid_number_of_transactions,
+                      valid_payment_to_seller)
+
+        update_state = Seq([
+            App.globalPut(self.Variables.sold, App.globalGet(self.Variables.sold) + Btoi(count)),
+            Approve()
+        ])
+
+        return If(can_buy).Then(update_state).Else(Reject())
+
+```
+Again, validity checks are performed:
+- The number of transactions within the group transaction must be exactly `2.` 
+- The second transaction of the group must be the payment transaction. 
+- The receiver of the payment should be the creator of the app
+The payment amount should match the product's price multiplied by the number of products bought. 
+- The sender of the payment transaction should match the sender of the smart contract call transaction.
+The global state is updated using `App.globalPut()` if all checks succeed. Specifically, the sold variable of the product is incremented by the number of products bought.
+If the checks do not succeed, the transaction is rejected.
+
+### 2.3 Delete a product
+Lastly, we want to be able to delete a product.
+Herefore we add the following method:
+```python=49
+    def app_deletion(self):
+        return Return(Txn.sender() == Global.creator_address())
+```
+Here we check if the sender of the delete transaction matches the app's creator, as only the creator should be able to delete an application.
+
+### 2.4 Check transaction conditions
+
+To allow for the different types of calls for the smart contract, the PyTeal Expression `Cond` is used. It chains a series of tests to select a result expression.
+We define the `Cond` expression within the Python function `application_start` that is added to our `Product` class.
+
+```python=52
+    def application_start(self):
+        return Cond(
+            [Txn.application_id() == Int(0), self.application_creation()],
+            [Txn.on_completion() == OnComplete.DeleteApplication, self.application_deletion()],
+            [Txn.application_args[0] == self.AppMethods.buy, self.buy()]
+        )
+```
+
+- The first condition checks if the `application_id` field of a transaction matches `0`. If this is the case, the application does not exist yet, and the `application_creation()` method is called.
+- As a second, if the the `OnComplete` action of the transaction is `DeleteApplication`, the `application_deletion()` method is called.
+- Finally, if none of the other conditions match and the first argument of the transaction matches the `AppMethods.buy` value, the `buy()` method is called.
+If none of the conditions match, the transaction is rejected.
+
+### 2.5 Approval and clear program
+A smart contract for the Algorand blockchain consists of two different programs called approval program and clear program. In PyTeal both of these programs are generally created in the same Python file.
+
+The approval program is responsible for processing all application calls to the contract, except for the clear call. The approval program is responsible for implementing most of the logic of an application. Like smart signatures, this program will succeed only if one nonzero value is left on the stack upon program completion or the return opcode is called with a positive value on the top of the stack.
+
+The clear program is used to handle accounts using the clear call to remove the smart contract from their balance record. This program will pass or fail the same way the approval program does.
+
+Therefore, we define the two programs required for a smart contract.
+```python=59
+    def approval_program(self):
+        return self.application_start()
+
+    def clear_program(self):
+        return Return(Int(1))
+```
+The `approval_program()` returns `application_start()`, which we defined in the previous step. As we do not use the local state for our application, we can use a basic `clear_program()` which returns `Int(1)`.
 
 
-![](https://i.imgur.com/bw3IUva.gif)
+The final `marketplace_contract.py` looks like this:
+```python=
+from pyteal import *
+
+
+class Product:
+    class Variables:
+        name = Bytes("NAME")
+        image = Bytes("IMAGE")
+        description = Bytes("DESCRIPTION")
+        price = Bytes("PRICE")
+        sold = Bytes("SOLD")
+
+    class AppMethods:
+        buy = Bytes("buy")
+
+    def application_creation(self):
+        return Seq([
+            Assert(Txn.application_args.length() == Int(4)),
+            Assert(Txn.note() == Bytes("tutorial-marketplace:uv1")),
+            Assert(Btoi(Txn.application_args[3]) > Int(0)),
+            App.globalPut(self.Variables.name, Txn.application_args[0]),
+            App.globalPut(self.Variables.image, Txn.application_args[1]),
+            App.globalPut(self.Variables.description, Txn.application_args[2]),
+            App.globalPut(self.Variables.price, Btoi(Txn.application_args[3])),
+            App.globalPut(self.Variables.sold, Int(0)),
+            Approve()
+        ])
+
+    def buy(self):
+        count = Txn.application_args[1]
+        valid_number_of_transactions = Global.group_size() == Int(2)
+
+        valid_payment_to_seller = And(
+            Gtxn[1].type_enum() == TxnType.Payment,
+            Gtxn[1].receiver() == Global.creator_address(),
+            Gtxn[1].amount() == App.globalGet(self.Variables.price) * Btoi(count),
+            Gtxn[1].sender() == Gtxn[0].sender(),
+        )
+
+        can_buy = And(valid_number_of_transactions,
+                      valid_payment_to_seller)
+
+        update_state = Seq([
+            App.globalPut(self.Variables.sold, App.globalGet(self.Variables.sold) + Btoi(count)),
+            Approve()
+        ])
+
+        return If(can_buy).Then(update_state).Else(Reject())
+
+    def application_deletion(self):
+        return Return(Txn.sender() == Global.creator_address())
+
+    def application_start(self):
+        return Cond(
+            [Txn.application_id() == Int(0), self.application_creation()],
+            [Txn.on_completion() == OnComplete.DeleteApplication, self.application_deletion()],
+            [Txn.application_args[0] == self.AppMethods.buy, self.buy()]
+        )
+
+    def approval_program(self):
+        return self.application_start()
+
+    def clear_program(self):
+        return Return(Int(1))
+```
+
+That is it! Now we only have to compile the smart contract to TEAL and are then ready to deploy the contract.
+
+## 3. Compile contract
+In order to deploy a smart contract we need to compile it first to Algorand's Smart Contract Language TEAL. 
+Please create a `compile_contract.py` in the root directory of the project.
+Then, we use the following python code to compile the approval and clear program written in PyTeal Code to TEAL:
+
+`compile_contract.py`
+```python=
+from pyteal import *
+
+from marketplace_contract import Product
+
+if __name__ == "__main__":
+    approval_program = Product().approval_program()
+    clear_program = Product().clear_program()
+
+    # Mode.Application specifies that this is a smart contract
+    compiled_approval = compileTeal(approval_program, Mode.Application, version=6)
+    print(compiled_approval)
+    with open("marketplace_approval.teal", "w") as teal:
+        teal.write(compiled_approval)
+        teal.close()
+
+    # Mode.Application specifies that this is a smart contract
+    compiled_clear = compileTeal(clear_program, Mode.Application, version=6)
+    print(compiled_clear)
+    with open("marketplace_clear.teal", "w") as teal:
+        teal.write(compiled_clear)
+        teal.close()
+```
+
+We import `pyteal` and the `Product` class from our marketplace_contract.py. Then we compile the `approval_program` and `clear_program` using PyTeals `compileTeal` method and write the compiled programs to `marketplace_approval.teal` and `marketplace_clear.teal` respectively.
+
+Now, while still being in the virtual environment, compile the contracts by running:
+```
+python3 compile_contract.py
+```
+
+This should create `marketplace_approval.teal` and `marketplace_clear.teal` in the root directory of the project.
+
+The resulting TEAL files can also be found [here](https://github.com/dacadeorg/algorand-react-marketplace/tree/master/src/contracts).
+
+
+In the next section you will learn how to test the smart contract in a local test environment.
+
+## 4. Test smart contract using Algorand sandbox
+
+
+In order to test the smart contract written in the previous step, we are going to run a local development environment of the Algorand blockchain using the [Algorand sandbox](https://github.com/algorand/sandbox).
+
+### 4.1 Prerequisites
+The Algorand sandbox requires Docker Compose to be installed on your machine. You can find instructions on how to install Docker [here](https://docs.docker.com/compose/install/).
+
+Make sure the docker daemon is running and docker-compose is installed.
+
+Then, open a terminal and run:
+```bash
+git clone https://github.com/algorand/sandbox.git
+```
+
+In whatever local directory the sandbox should reside. Then go into the sandbox directory using
+```bash
+cd sandbox
+```
+Finally run
+```bash
+./sandbox up -v
+```
+to start the sandbox as a local private network. This can take some while when first starting the sandbox.
+
+### 4.2 List accounts
+The local private network comes with precreated accounts that already have funding on them.
+You can list available accounts using the [goal cli](https://developer.algorand.org/docs/clis/goal/goal/) of the sandbox
+```bash
+./sandbox goal account list
+```
+
+This should give you something like:
+```bash
+[offline]	A72PORR7DCZMIKM3YYOK3IPYZ6BYDGZI6MZDBNMVX3LLWSMUQ3NSPNUZMM	A72PORR7DCZMIKM3YYOK3IPYZ6BYDGZI6MZDBNMVX3LLWSMUQ3NSPNUZMM	4000000000000000 microAlgos
+[offline]	CLQ2U2RFKSTBKFIVMLW5MGFRGF4FZHJUQRDDTV75VNOQ5IEZG74OJQFFYY	CLQ2U2RFKSTBKFIVMLW5MGFRGF4FZHJUQRDDTV75VNOQ5IEZG74OJQFFYY	1000000000000000 microAlgos
+[online]	ZYKAGOZWO34XHUHE7DSQJ6Y5MENUKAV2SK3JINXLSHAB6F7SKDD4NVFZHU	ZYKAGOZWO34XHUHE7DSQJ6Y5MENUKAV2SK3JINXLSHAB6F7SKDD4NVFZHU	4000000000000000 microAlgos
+```
+
+Select one of the accounts and write down its address (e.g. `A72PORR7DCZMIKM3YYOK3IPYZ6BYDGZI6MZDBNMVX3LLWSMUQ3NSPNUZMM`). It will be used in the next steps.
+
+### 4.3 Deploy contract 
+Now we are going to deploy the smart contract to the local blockchain using [goal app create](https://developer.algorand.org/docs/clis/goal/app/create).
+In preperation for that we are going to copy our teal programs to the sandbox container:
+```bash
+./sandbox copyTo ${PATH_TO_APPROVAL_PROGRAM}
+```
+```bash
+./sandbox copyTo ${PATH_TO_CLEAR_PROGRAM}
+```
+- `${PATH_TO_APPROVAL_PROGRAM}`: Path to `marketplace_approval.teal`
+- `${PATH_TO_CLEAR_PROGRAM}`: Path to `marketplace_clear.teal`
+
+Then we can create the application like this
+```bash
+./sandbox goal app create --creator ${ACCOUNT_ADDRESS} --approval-prog marketplace_approval.teal --clear-prog marketplace_clear.teal --note tutorial-marketplace:uv1 --global-byteslices 3 --global-ints 2 --local-byteslices 0 --local-ints 0 --app-arg str:TestName --app-arg str:TestImage --app-arg str:TestDescription --app-arg int:1000000
+```
+- `${ACCOUNT_ADDRESS}`: Address of the account that will create the app. Can be one of the addresses that were listed in the previous step.
+
+We pass our approval program and clear program using the `--approval-prog` and `--clear-prog` flags. We pass the predefined note using the `--note` flag. As the application is storing 5 variables in the global state (3 as bytes, 2 as ints) and will not be using the local state we configure this using `--global-byteslices 3 --global-ints 2 --local-byteslices 0 --local-ints 0`. Finally, we pass the required application arguments using `--app-arg` in the correct order. For the last`--app-arg`, which represents the price, we pass 1000000 microAlgos, which is equivalent to 1 Algo.
+
+If the command was entered correctly you should see something like this:
+
+![](https://i.imgur.com/JR2rPdQ.gif)
+
+
+You have successfully deployed the contract to your local network!
+
+
+### 4.4 Delete app
+As a second test we can use goal app delete to delete our application
+The command to delete an application looks like this:
+```bash
+./sandbox goal app delete --app-id ${APP_ID} --from ${ACCOUNT_ADDRESS}
+```
+- `${APP_ID}` App id of the application that was created in the previous step.
+- `${ACCOUNT_ADDRESS}`: Address of the account that will be delete the app. Has to be the creator of the app, otherwise the call will get rejected.
     
-That's it! You have successfully created your testnet wallet. Next, we are going to set up the React project. 
+If the command was entered correctly you should see something like this:
+
+![](https://i.imgur.com/GQiOhbK.gif)
+
     
-## 2. Project Setup
 
-In the second section of this tutorial, we will set up the project and install the necessary dependencies.
+That’s it! We have successfully written and tested a smart contract for a decentralized marketplace.
 
-Make sure that you have `nodejs` v16 or higher installed:
 
-```bash
-node -v
-```
-
-We will use the `create-react-app` utility to create a new React project:
-
-```bash
-npx create-react-app algorand-marketplace
-```
-
-Let's cd into the newly created project:
-
-```bash
-cd algorand-marketplace
-```
-
-Unfortunately, `react-scripts` of version 5 is not compatible with the Algorand JavaScript SDK yet, so we should use `react-scripts` of version 4.0.3:
-
-```bash
-npm install react-scripts@4.0.3
-```
-
-Also, we will downgrade `react` to version 17, as not all of the frontend libraries we will install in a later learning module are compatible with version 18 yet:
-
-```bash
-npm install react@17.0.2 react-dom@17.0.2 @testing-library/react@12.1.4 react-error-overlay@6.0.9
-```
-
-After downgrading to React 17 you have to change the content `src/index.js` file to the following:
-```js
-import React from 'react';
-import ReactDOM from 'react-dom';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
-
-ReactDOM.render(
-    <React.StrictMode>
-        <App/>
-    </React.StrictMode>,
-    document.getElementById('root'),
-);
-
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
-```
-Next, we need to install the `algosdk` library:
-
-```bash
-npm install algosdk
-```
-
-Also, we will install the `@randlabs/myalgo-connect` library, which we will use to connect to the algorand wallet and sign transactions:
-
-```bash
-npm install @randlabs/myalgo-connect
-```
-
-Finally, we will install `raw-loader`, which we will use to import the smart contract TEAL files which we created in the [Smart Contract Development](/CQV5jnJgT_2QfOK8sPjjpw) learning module:
-
-```bash
-npm install raw-loader --save-dev
-```
-
-Thats it! Now we can start the project and see if everything is working:
-
-```bash
-npm start
-```
-
-## 3. Configuring connection to Algorand
-
-Now that we have a project, we can set up our connection to the Algroand testnet and test our smart contract using the JavaScript SDK.
-
-We create a `utils` folder in the `src` directory with the `src/utils/constants.js` file to define the configuration for our connection to the Algorand network. For accessing the testnet we use public nodes provided by https://algoexplorer.io.
-
-```js
-import algosdk from "algosdk";
-import MyAlgoConnect from "@randlabs/myalgo-connect";
-
-const config = {
-    algodToken: "",
-    algodServer: "https://node.testnet.algoexplorerapi.io",
-    algodPort: "",
-    indexerToken: "",
-    indexerServer: "https://algoindexer.testnet.algoexplorerapi.io",
-    indexerPort: "",
-}
-
-export const algodClient = new algosdk.Algodv2(config.algodToken, config.algodServer, config.algodPort)
-
-export const indexerClient = new algosdk.Indexer(config.indexerToken, config.indexerServer, config.indexerPort);
-
-export const myAlgoConnect = new MyAlgoConnect();
-```
-First, we define a config, which specifies the token, server and port for the algod API and the indexer API.
-Then, we create the `algodClient`, `indexerClient` and `myAlgoConnect`.
-The `algodClient` will be used to perform transactions and retrieve account information.
-The `indexerClient` allows searching the blockchain for certain transactions or applications.
-Finally, `myAlgoConnect` allows us to connect the wallet we created in section 1 and sign transactions.
-
-
-## 4. Implementing the Marketplace
-Now that we have the configuration for communicating with the Algorand APIs, we can implement the interactions with the marketplace.
-
-### 4.1 Smart contracts
-First we create a `contracts` folder in the `src` directory and copy our `marketplace_approval.teal` and `marketplace_clear.teal` created in the [Smart Contract Development](/CQV5jnJgT_2QfOK8sPjjpw) learning module into the `src/contracts` directory.
-
-### 4.2 Additional constants
-For the implementation of the marketplace, we need some additional constants. Add the following to `src/utils/constants.js`
-
-```json
-// ...
-export const minRound = 21540981;
-
-// https://github.com/algorandfoundation/ARCs/blob/main/ARCs/arc-0002.md
-export const marketplaceNote = "tutorial-marketplace:uv1"
-
-// Maximum local storage allocation, immutable
-export const numLocalInts = 0;
-export const numLocalBytes = 0;
-// Maximum global storage allocation, immutable
-export const numGlobalInts = 2; // Global variables stored as Int: count, sold
-export const numGlobalBytes = 3; // Global variables stored as Bytes: name, description, image
-```
-
-We define a `minRound` variable, which we will use later on to limit the search for transactions up to a specific round.
-Next, we define the a`marketplaceNote`, which is required to find products of the marketplace later on.
-Finally, we define the values `numLocalInts`, `numLocalBytes`, `numGlobalInts` `numGlobalBytes`, which will specify the storage allocation of a smart contract.
-
-### 4.3 Conversions
-Next, we create a `src/utils/conversions.js` file, that will contain functions which we will need for for converting strings to interact with the smart contract.
-```js
-export const base64ToUTF8String = (base64String) => {
-    return Buffer.from(base64String, 'base64').toString("utf-8")
-}
-
-export const utf8ToBase64String = (utf8String) => {
-    return Buffer.from(utf8String, 'utf8').toString('base64')
-}
-```
-
-### 4.4 Marketplace functionality
-Now, we create a `src/utils/marketplace.js` file, that will contain the functions that we will use to interact our smart contract and start with the imports and the definition of a `Product` class:
-```js
-import algosdk from "algosdk";
-import {
-    algodClient,
-    indexerClient,
-    marketplaceNote,
-    minRound,
-    myAlgoConnect,
-    numGlobalBytes,
-    numGlobalInts,
-    numLocalBytes,
-    numLocalInts
-} from "./constants";
-/* eslint import/no-webpack-loader-syntax: off */
-import approvalProgram from "!!raw-loader!../contracts/marketplace_approval.teal";
-import clearProgram from "!!raw-loader!../contracts/marketplace_clear.teal";
-import {base64ToUTF8String, utf8ToBase64String} from "./conversions";
-
-class Product {
-    constructor(name, image, description, price, sold, appId, owner) {
-        this.name = name;
-        this.image = image;
-        this.description = description;
-        this.price = price;
-        this.sold = sold;
-        this.appId = appId;
-        this.owner = owner;
-    }
-}
-```
-We import `algosdk`, as well as the constants and conversion functions we defined in the previous steps. Also, we import our `.teal` files as `approvalProgram` and `clearProgram`.
-
-Then, we define a `Product` class, with the variables that define a product in the marketplace.
-
-#### 4.4.1 Create Product
-Next we implement a `createProductAction` function, which will be used to deploy a smart contract to the blockchain. We also add the helper function `compileProgram`. Please add the following to `src/utils/marketplace.js`: 
-```js
-//...
-// Compile smart contract in .teal format to program
-const compileProgram = async (programSource) => {
-    let encoder = new TextEncoder();
-    let programBytes = encoder.encode(programSource);
-    let compileResponse = await algodClient.compile(programBytes).do();
-    return new Uint8Array(Buffer.from(compileResponse.result, "base64"));
-}
-
-// CREATE PRODUCT: ApplicationCreateTxn
-export const createProductAction = async (senderAddress, product) => {
-    console.log("Adding product...")
-
-    let params = await algodClient.getTransactionParams().do();
-    params.fee = algosdk.ALGORAND_MIN_TX_FEE;
-    params.flatFee = true;
-
-    // Compile programs
-    const compiledApprovalProgram = await compileProgram(approvalProgram)
-    const compiledClearProgram = await compileProgram(clearProgram)
-
-    // Build note to identify transaction later and required app args as Uint8Arrays
-    let note = new TextEncoder().encode(marketplaceNote);
-    let name = new TextEncoder().encode(product.name);
-    let image = new TextEncoder().encode(product.image);
-    let description = new TextEncoder().encode(product.description);
-    let price = algosdk.encodeUint64(product.price);
-
-    let appArgs = [name, image, description, price]
-
-    // Create ApplicationCreateTxn
-    let txn = algosdk.makeApplicationCreateTxnFromObject({
-        from: senderAddress,
-        suggestedParams: params,
-        onComplete: algosdk.OnApplicationComplete.NoOpOC,
-        approvalProgram: compiledApprovalProgram,
-        clearProgram: compiledClearProgram,
-        numLocalInts: numLocalInts,
-        numLocalByteSlices: numLocalBytes,
-        numGlobalInts: numGlobalInts,
-        numGlobalByteSlices: numGlobalBytes,
-        note: note,
-        appArgs: appArgs
-    });
-
-    // Get transaction ID
-    let txId = txn.txID().toString();
-
-    // Sign & submit the transaction
-    let signedTxn = await myAlgoConnect.signTransaction(txn.toByte());
-    console.log("Signed transaction with txID: %s", txId);
-    await algodClient.sendRawTransaction(signedTxn.blob).do();
-
-    // Wait for transaction to be confirmed
-    let confirmedTxn = await algosdk.waitForConfirmation(algodClient, txId, 4);
-
-    // Get the completed Transaction
-    console.log("Transaction " + txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
-
-    // Get created application id and notify about completion
-    let transactionResponse = await algodClient.pendingTransactionInformation(txId).do();
-    let appId = transactionResponse['application-index'];
-    console.log("Created new app-id: ", appId);
-    return appId;
-}
-```
-The `createProductAction` function takes the parameters `senderAdress`, which is the address of the creator of the product and an object `product`, which contains the data for the new product. The function looks like a lot of code but is quite straightforward.
-    
-First, transaction parameters, including the transaction fee, are configured.
-Then, the teal files are compiled, as the algod API requires them as `Uint8Array`. Next, the note and the app args (which contain the variables for the newly created product) are also converted to `Uint8Array`.
-    
-Next, the `ApplicationCreateTxn` is built. Here, the sender, params, compiled approval and clear program, arguments, note and the storage allocation settings declared in `constants.js` are passed.
-
-Afterwards, the transaction is signed using myAlgoConnect. The `signTransaction` function will open a pop-up, requiring the user to enter their wallet password and approve the transaction.
-
-Then, the transaction is sent, and its confirmation is awaited.
-
-Finally, the `appId` of the newly created app is returned.
-
-#### 4.4.2 Buy product
-As a next step, we will implement a `buyProductAction` function which is used to buy a product that was added to the marketplace using the `createProductAction` function. In our marketplace smart contract developed in [Smart Contract Development](/CQV5jnJgT_2QfOK8sPjjpw) learning module buying a product is done by grouping two different transactions together in a group transaction. A `ApplicationCallTx` and a `PaymentTxn`. Please add the following to `src/utils/marketplace.js`:
-
-```js
-//...
-// BUY PRODUCT: Group transaction consisting of ApplicationCallTxn and PaymentTxn
-export const buyProductAction = async (senderAddress, product, count) => {
-    console.log("Buying product...");
-
-    let params = await algodClient.getTransactionParams().do();
-    params.fee = algosdk.ALGORAND_MIN_TX_FEE;
-    params.flatFee = true;
-
-    // Build required app args as Uint8Array
-    let buyArg = new TextEncoder().encode("buy")
-    let countArg = algosdk.encodeUint64(count);
-    let appArgs = [buyArg, countArg]
-
-    // Create ApplicationCallTxn
-    let appCallTxn = algosdk.makeApplicationCallTxnFromObject({
-        from: senderAddress,
-        appIndex: product.appId,
-        onComplete: algosdk.OnApplicationComplete.NoOpOC,
-        suggestedParams: params,
-        appArgs: appArgs
-    })
-
-    // Create PaymentTxn
-    let paymentTxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-        from: senderAddress,
-        to: product.owner,
-        amount: product.price * count,
-        suggestedParams: params
-    })
-
-    let txnArray = [appCallTxn, paymentTxn]
-
-    // Create group transaction out of previously build transactions
-    let groupID = algosdk.computeGroupID(txnArray)
-    for (let i = 0; i < 2; i++) txnArray[i].group = groupID;
-
-    // Sign & submit the group transaction
-    let signedTxn = await myAlgoConnect.signTransaction(txnArray.map(txn => txn.toByte()));
-    console.log("Signed group transaction");
-    let tx = await algodClient.sendRawTransaction(signedTxn.map(txn => txn.blob)).do();
-
-    // Wait for group transaction to be confirmed
-    let confirmedTxn = await algosdk.waitForConfirmation(algodClient, tx.txId, 4);
-
-    // Notify about completion
-    console.log("Group transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
-}
-```
-The `buyProductAction` function takes the parameters `senderAdress`, which is the address of the buyer of the product, an object `product`, which is the product that will be bought, and an integer variable `count`, specifying how many products will be bought. 
-
-Then, again, first, the parameters and arguments for the transactions are built. Next, the two transactions required for the group transaction are created. We send the payment to the product owner and use the price multiplied by the count as the amount. Next, the transactions are grouped, and a `groupID` is computed. 
-
-Finally, the transaction is sent, and its confirmation is awaited.
-
-#### 4.4.3 Delete product
-We go on with implementing a `deleteProductAction` function. Its goal is to delete a product represented by an application by sending a `ApplicationDeleteTxn`. Please add the following to `src/utils/marketplace.js`:
-    
-```js
-//...
-// DELETE PRODUCT: ApplicationDeleteTxn
-export const deleteProductAction = async (senderAddress, index) => {
-    console.log("Deleting application...");
-
-    let params = await algodClient.getTransactionParams().do();
-    params.fee = algosdk.ALGORAND_MIN_TX_FEE;
-    params.flatFee = true;
-
-    // Create ApplicationDeleteTxn
-    let txn = algosdk.makeApplicationDeleteTxnFromObject({
-        from: senderAddress, suggestedParams: params, appIndex: index,
-    });
-
-    // Get transaction ID
-    let txId = txn.txID().toString();
-
-    // Sign & submit the transaction
-    let signedTxn = await myAlgoConnect.signTransaction(txn.toByte());
-    console.log("Signed transaction with txID: %s", txId);
-    await algodClient.sendRawTransaction(signedTxn.blob).do();
-
-    // Wait for transaction to be confirmed
-    const confirmedTxn = await algosdk.waitForConfirmation(algodClient, txId, 4);
-
-    // Get the completed Transaction
-    console.log("Transaction " + txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
-
-    // Get application id of deleted application and notify about completion
-    let transactionResponse = await algodClient.pendingTransactionInformation(txId).do();
-    let appId = transactionResponse['txn']['txn'].apid;
-    console.log("Deleted app-id: ", appId);
-}
-```
-
-The `deleteProductAction` function takes the parameters `senderAddress`, which is the address of the account that wants to delete the product and an `index` which is the appId of the product that should be deleted.
-The logic is similar to the `createProductAction` and `buyProductAction`. After building the transaction params, the `ApplicationDeleteTxn` is created, signed, submitted, and its confirmation awaited.
-
-#### 4.4.4 Get products
-As a final function for our marketplace, we need to implement a `getProductsAction` function, searching for available products on the blockchain, fetching them, and returning them. For this, we will utilise Algorand's [Indexer API](https://developer.algorand.org/docs/get-details/indexer/), which can be accessed using the `indexerClient` created in our `constants.js` file.
-Please add the following to `src/utils/marketplace.js`:
-```js
-//...
-// GET PRODUCTS: Use indexer
-export const getProductsAction = async () => {
-    console.log("Fetching products...")
-    let note = new TextEncoder().encode(marketplaceNote);
-    let encodedNote = Buffer.from(note).toString("base64");
-
-    // Step 1: Get all transactions by notePrefix (+ minRound filter for performance)
-    let transactionInfo = await indexerClient.searchForTransactions()
-        .notePrefix(encodedNote)
-        .txType("appl")
-        .minRound(minRound)
-        .do();
-    let products = []
-    for (const transaction of transactionInfo.transactions) {
-        let appId = transaction["created-application-index"]
-        if (appId) {
-            // Step 2: Get each application by application id
-            let product = await getApplication(appId)
-            if (product) {
-                products.push(product)
-            }
-        }
-    }
-    console.log("Products fetched.")
-    return products
-}
-
-const getApplication = async (appId) => {
-    try {
-        // 1. Get application by appId
-        let response = await indexerClient.lookupApplications(appId).includeAll(true).do();
-        if (response.application.deleted) {
-            return null;
-        }
-        let globalState = response.application.params["global-state"]
-
-        // 2. Parse fields of response and return product
-        let owner = response.application.params.creator
-        let name = ""
-        let image = ""
-        let description = ""
-        let price = 0
-        let sold = 0
-
-        const getField = (fieldName, globalState) => {
-            return globalState.find(state => {
-                return state.key === utf8ToBase64String(fieldName);
-            })
-        }
-
-        if (getField("NAME", globalState) !== undefined) {
-            let field = getField("NAME", globalState).value.bytes
-            name = base64ToUTF8String(field)
-        }
-
-        if (getField("IMAGE", globalState) !== undefined) {
-            let field = getField("IMAGE", globalState).value.bytes
-            image = base64ToUTF8String(field)
-        }
-
-        if (getField("DESCRIPTION", globalState) !== undefined) {
-            let field = getField("DESCRIPTION", globalState).value.bytes
-            description = base64ToUTF8String(field)
-        }
-
-        if (getField("PRICE", globalState) !== undefined) {
-            price = getField("PRICE", globalState).value.uint
-        }
-
-        if (getField("SOLD", globalState) !== undefined) {
-            sold = getField("SOLD", globalState).value.uint
-        }
-
-        return new Product(name, image, description, price, sold, appId, owner)
-    } catch (err) {
-        return null;
-    }
-}
-```
-
-First, we will look for transactions with which products got created. We are doing this by performing a [note field search](https://developer.algorand.org/docs/get-details/indexer/?from_query=note%20field%20searc#note-field-searching) on all transactions using `indexerClient.searchForTransactions().notePrefix(encodedNote)`.
-As an additional filter we only include application related transactions with `.txType("appl")`. As searching all transactions would take too long, we also add a `minRound` filter to limit the search up to a certain point in the chain's history. Once we have all transactions containing the `appId`s of the created applications, we fetch each application using `indexerClient.lookupApplications(appId)`. If the application is already deleted, we return null. Otherwhise, we use the response to extract the application's global state and associate the base64 encoded state keys to our product variables. The values of the keys are used to build our product object. Values, which were stored as bytes, are encoded as base64 strings and have to be converted to utf8. Integer values can be accessed directly.
-
-Finally, we build a product object, add it to the products array and return all products.
-
-### 4.5 Adding the Marketplace to the app
-
-Lastly, we are going to add the functionality of the marketplace to our app. Open the `src/App.js` file and change the code to the following:
-
-```js
-import React, {useEffect, useState} from "react";
-import './App.css';
-import MyAlgoConnect from "@randlabs/myalgo-connect";
-import {getProductsAction} from "./utils/marketplace";
-
-const App = function AppWrapper() {
-
-    const [address, setAddress] = useState(null);
-    const [products, setProducts] = useState([]);
-
-    const connectWallet = async () => {
-        new MyAlgoConnect().connect()
-            .then(accounts => {
-                const _account = accounts[0];
-                setAddress(_account.address);
-            }).catch(error => {
-            console.log('Could not connect to MyAlgo wallet');
-            console.error(error);
-        })
-    };
-
-    useEffect(() => {
-        getProductsAction().then(products => {
-            setProducts(products)
-        });
-    }, []);
-
-    return (
-        <>
-            {address ? (
-                products.forEach((product) => console.log(product))
-            ) : (
-                <button onClick={connectWallet}>CONNECT WALLET</button>
-            )}
-        </>
-    );
-}
-
-export default App;
-```
-
-This code is just for testing purposes. We try to connect to the wallet, and if we are connected, we fetch the products. Then we display the products in the console, making use of the `getProductsAction` function that we just created.
-If we are not connected, we display a button that will connect to the wallet by calling the `connectWallet` function defined above.
-
-Now you can start the app:
-
-```bash
-npm start
-```
-
-And you should see something like this:
-
-![](https://i.imgur.com/jKdyJLU.gif)
-
-Great! Now you can see the products in the console. Continue the next learning module to learn how to build the fronted components for your marketplace dapp.
+The next nearning module will explain how to deploy the contract to the Algorand testnet, and interact with the smart contract in a frontend.
