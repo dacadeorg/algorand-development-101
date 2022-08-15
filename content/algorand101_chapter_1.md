@@ -18,7 +18,7 @@ We will use the following tech stack:
 ## 1. Setup
 In this first section of the tutorial, we will set up our development environment and project.
 
-You will need to have a version of Python 3 (at least 3.6.x) installed. You can check the currently installed version using
+You will need to have a version of Python 3 (at least 3.10.x) installed. You can check the currently installed version using
 ```bash
 python3 --version
 ```
