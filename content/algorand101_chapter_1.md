@@ -66,7 +66,7 @@ In this section, we are going to write the smart contract that will represent a 
 We will write the smart contract with PyTeal in `marketplace_contract.py`. Please create the file in the project's root directory and open the file in an editor.
 
 First we will import PyTeal using
-```python=
+```python
 from pyteal import *
 ```
 
@@ -75,7 +75,7 @@ Multiple variables define a product in our marketplace. It has a name, an image 
 The variables are stored in the application's global state, consisting of key-value pairs, where keys are byte slices, and values can be integers or byte slices.
 
 In PyTeal we first create a class `Product`. While classes are not required for the smart contract to work, it helps in understanding the code. We also define two subclasses. The class `Variables` defines the keys for our Global state variable. The class `AppMethods` defines methods available for the product. Here, only "buy" is added for now.
-```python=
+```python
 from pyteal import *
 
 
@@ -96,7 +96,7 @@ Next, we are going to define what should happen when creating the application.
 
 Therefore, we add the following method to our `Product` class:
 
-```python=15
+```python
     def application_creation(self):
         return Seq([
             Assert(Txn.application_args.length() == Int(4)),
@@ -122,7 +122,7 @@ Next, we are going to write a handler for the buy interaction.
 Buying a product will be represented as a group transaction where a smart contract call transaction and a payment transaction to the product owner are grouped together.
 
 We add the following method to our `Product` class
-```python=28
+```python
     def buy(self):
         count = Txn.application_args[1]
         valid_number_of_transactions = Global.group_size() == Int(2)
@@ -157,7 +157,7 @@ If the checks do not succeed, the transaction is rejected.
 ### 2.3 Delete a product
 Lastly, we want to be able to delete a product.
 Herefore we add the following method:
-```python=49
+```python
     def app_deletion(self):
         return Return(Txn.sender() == Global.creator_address())
 ```
@@ -168,7 +168,7 @@ Here we check if the sender of the delete transaction matches the app's creator,
 To allow for the different types of calls for the smart contract, the PyTeal Expression `Cond` is used. It chains a series of tests to select a result expression.
 We define the `Cond` expression within the Python function `application_start` that is added to our `Product` class.
 
-```python=52
+```python
     def application_start(self):
         return Cond(
             [Txn.application_id() == Int(0), self.application_creation()],
@@ -190,7 +190,7 @@ The approval program is responsible for processing all application calls to the 
 The clear program is used to handle accounts using the clear call to remove the smart contract from their balance record. This program will pass or fail the same way the approval program does.
 
 Therefore, we define the two programs required for a smart contract.
-```python=59
+```python
     def approval_program(self):
         return self.application_start()
 
@@ -201,7 +201,7 @@ The `approval_program()` returns `application_start()`, which we defined in the 
 
 
 The final `marketplace_contract.py` looks like this:
-```python=
+```python
 from pyteal import *
 
 
@@ -275,7 +275,7 @@ Please create a `compile_contract.py` in the root directory of the project.
 Then, we use the following python code to compile the approval and clear program written in PyTeal Code to TEAL:
 
 `compile_contract.py`
-```python=
+```python
 from pyteal import *
 
 from marketplace_contract import Product
