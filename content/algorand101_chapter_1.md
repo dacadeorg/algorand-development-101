@@ -158,7 +158,7 @@ If the checks do not succeed, the transaction is rejected.
 Lastly, we want to be able to delete a product.
 Herefore we add the following method:
 ```python
-    def app_deletion(self):
+    def application_deletion(self):
         return Return(Txn.sender() == Global.creator_address())
 ```
 Here we check if the sender of the delete transaction matches the app's creator, as only the creator should be able to delete an application.
