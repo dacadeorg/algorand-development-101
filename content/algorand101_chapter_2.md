@@ -160,7 +160,7 @@ First we create a `contracts` folder in the `src` directory and copy our `market
 ### 4.2 Additional constants
 For the implementation of the marketplace, we need some additional constants. Add the following to `src/utils/constants.js`
 
-```json
+```js
 // ...
 export const minRound = 21540981;
 
