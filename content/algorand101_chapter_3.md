@@ -21,7 +21,9 @@ We will use the following tech stack:
 Since we already have the important dependencies installed, we now only need to add our dependencies for the frontend, styling and formatting numbers:
 
 ```bash
-npm install react-bootstrap bootstrap bootstrap-icons react-toastify prop-types react-jazzicon
+npm install react-bootstrap bootstrap bootstrap-icons prop-types react-jazzicon bignumber.js
+# and separately, as the latest version of react-toastify is buggy
+npm install react-toastify@9.0.3 --save-exact
 ```
 
 We will use `react-bootstrap` to handle the `Bootstrap` styling of our react components. We will use `react-toastify` to display notifications to the user, so we don't have to handle that ourselves. We will use `prop-types` to define component props as required. We will use `react-jazzicon` to display a wallet address as an identicon. Finally, we will use `bignumber.js` to format numbers.
@@ -66,7 +68,7 @@ The `src/utils/` directory should look like this if you followed the [Connect a 
 
 #### 1.2.2 constants.js
 We are going to expand the `util/constants.js` file with one more variable, which we will need for the next step:
-```json
+```js
 //...
 export const ALGORAND_DECIMALS = 6;
 ```
@@ -282,10 +284,10 @@ For this tutorial, we chose a `sandwich.jpg` image that you can find [here](http
 
 Now let's continue with the `Identicon` component.
 
-### 2.2 Indenticon.jsx
-The indenticon component will be used to display a visual representation of a wallet address to identify an account's address quickly.
+### 2.2 Identicon.jsx
+The identicon component will be used to display a visual representation of a wallet address to identify an account's address quickly.
 
-Create a `utils` folder in the `components` directory and create a `src/components/utils/Indenticon.jsx` file with the following code:
+Create a `utils` folder in the `components` directory and create a `src/components/utils/Identicon.jsx` file with the following code:
 
 ```js
 import Jazzicon from "react-jazzicon";
