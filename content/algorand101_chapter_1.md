@@ -148,9 +148,10 @@ We add the following method to our `Product` class
 Again, validity checks are performed:
 - The number of transactions within the group transaction must be exactly `2.` 
 - The second transaction of the group must be the payment transaction. 
-- The receiver of the payment should be the creator of the app
-The payment amount should match the product's price multiplied by the number of products bought. 
+- The receiver of the payment should be the creator of the app.
+- The payment amount should match the product's price multiplied by the number of products bought. 
 - The sender of the payment transaction should match the sender of the smart contract call transaction.
+
 The global state is updated using `App.globalPut()` if all checks succeed. Specifically, the sold variable of the product is incremented by the number of products bought.
 If the checks do not succeed, the transaction is rejected.
 
