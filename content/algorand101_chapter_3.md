@@ -127,7 +127,7 @@ import coverImg from "./assets/img/sandwich.jpg"
 
 We import the `Wallet` and `Cover` components and the `coverImg` image file. All of which have not been created yet. We also import our `algodClient` and `myAlgoConnect` from `src/utils/constants.js`
 
-For now, the `Notification` and `Products` components will remain uncommented as we will implement them later.
+For now, the `Notification` and `Products` components will remain commented as we will implement them later.
 
 Let's create our `App` component now:
 
@@ -607,7 +607,7 @@ Also, we create a `buyProduct` function:
 //...
 ```
 
-We need the `product` and `count` (how many products will be bought) and call the `buyProductAction` utility function to buy the product. We the product was bought successfully, we fetch the products again and display a success message or an error message if the product could not be bought.
+We need the `product` and `count` (how many products will be bought) and call the `buyProductAction` utility function to buy the product. When the product was bought successfully, we fetch the products again and display a success message or an error message if the product could not be bought.
 
 Finally, we create a `deleteProduct` function:
 ```js
