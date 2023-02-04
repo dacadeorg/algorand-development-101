@@ -401,4 +401,4 @@ If the command was entered correctly you should see something like this:
 That’s it! We have successfully written and tested a smart contract for a decentralized marketplace.
 
 
-The next nearning module will explain how to deploy the contract to the Algorand testnet, and interact with the smart contract in a frontend.
+The next learning module will explain how to deploy the contract to the Algorand testnet, and interact with the smart contract in a frontend.
