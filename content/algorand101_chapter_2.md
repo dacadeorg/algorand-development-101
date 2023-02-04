@@ -176,11 +176,11 @@ export const numGlobalBytes = 3; // Global variables stored as Bytes: name, desc
 ```
 
 We define a `minRound` variable, which we will use later on to limit the search for transactions up to a specific round.
-Next, we define the a`marketplaceNote`, which is required to find products of the marketplace later on.
+Next, we define a `marketplaceNote`, which is required to find products of the marketplace later on.
 Finally, we define the values `numLocalInts`, `numLocalBytes`, `numGlobalInts` `numGlobalBytes`, which will specify the storage allocation of a smart contract.
 
 ### 4.3 Conversions
-Next, we create a `src/utils/conversions.js` file, that will contain functions which we will need for for converting strings to interact with the smart contract.
+Next, we create a `src/utils/conversions.js` file, that will contain functions which we will need for converting strings to interact with the smart contract.
 ```js
 export const base64ToUTF8String = (base64String) => {
     return Buffer.from(base64String, 'base64').toString("utf-8")
@@ -559,4 +559,4 @@ And you should see something like this:
 
 ![](https://i.imgur.com/jKdyJLU.gif)
 
-Great! Now you can see the products in the console. Continue the next learning module to learn how to build the fronted components for your marketplace dapp.
+Great! Now you can see the products in the console. Continue the next learning module to learn how to build the frontend components for your marketplace dapp.
