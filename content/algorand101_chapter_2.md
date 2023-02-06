@@ -142,13 +142,15 @@ export const algodClient = new algosdk.Algodv2(config.algodToken, config.algodSe
 
 export const indexerClient = new algosdk.Indexer(config.indexerToken, config.indexerServer, config.indexerPort);
 
-export const myAlgoConnect = new MyAlgoConnect();
+export const myAlgoConnect = new MyAlgoConnect({
+    timeout: 100000000,
+});
 ```
 First, we define a config, which specifies the token, server and port for the algod API and the indexer API.
 Then, we create the `algodClient`, `indexerClient` and `myAlgoConnect`.
 The `algodClient` will be used to perform transactions and retrieve account information.
 The `indexerClient` allows searching the blockchain for certain transactions or applications.
-Finally, `myAlgoConnect` allows us to connect the wallet we created in section 1 and sign transactions.
+Finally, `myAlgoConnect` allows us to connect the wallet we created in section 1 and sign transactions. We set a high timeout to prevent the Algorand request from timing out due to slow Algorand testnet nodes.
 
 
 ## 4. Implementing the Marketplace
