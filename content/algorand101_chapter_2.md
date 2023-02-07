@@ -123,7 +123,7 @@ npm start
 
 Now that we have a project, we can set up our connection to the Algroand testnet and test our smart contract using the JavaScript SDK.
 
-We create a `utils` folder in the `src` directory with the `src/utils/constants.js` file to define the configuration for our connection to the Algorand network. For accessing the testnet we use public nodes provided by https://algoexplorer.io.
+We create a `utils` folder in the `src` directory with the `src/utils/constants.js` file to define the configuration for our connection to the Algorand network. For accessing the testnet we use public fast nodes provided by https://algonode.io/.
 
 ```js
 import algosdk from "algosdk";
