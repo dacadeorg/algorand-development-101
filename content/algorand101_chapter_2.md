@@ -131,10 +131,10 @@ import MyAlgoConnect from "@randlabs/myalgo-connect";
 
 const config = {
     algodToken: "",
-    algodServer: "https://node.testnet.algoexplorerapi.io",
+    algodServer: "https://testnet-api.algonode.network",
     algodPort: "",
     indexerToken: "",
-    indexerServer: "https://algoindexer.testnet.algoexplorerapi.io",
+    indexerServer: "https://testnet-idx.algonode.network",
     indexerPort: "",
 }
 
@@ -164,7 +164,7 @@ For the implementation of the marketplace, we need some additional constants. Ad
 
 ```js
 // ...
-export const minRound = 21540981;
+export const minRound = 25556983;
 
 // https://github.com/algorandfoundation/ARCs/blob/main/ARCs/arc-0002.md
 export const marketplaceNote = "tutorial-marketplace:uv1"
