@@ -123,7 +123,7 @@ npm start
 
 Now that we have a project, we can set up our connection to the Algroand testnet and test our smart contract using the JavaScript SDK.
 
-We create a `utils` folder in the `src` directory with the `src/utils/constants.js` file to define the configuration for our connection to the Algorand network. For accessing the testnet we use public nodes provided by https://algoexplorer.io.
+We create a `utils` folder in the `src` directory with the `src/utils/constants.js` file to define the configuration for our connection to the Algorand network. For accessing the testnet we use public fast nodes provided by https://algonode.io/.
 
 ```js
 import algosdk from "algosdk";
@@ -131,10 +131,10 @@ import MyAlgoConnect from "@randlabs/myalgo-connect";
 
 const config = {
     algodToken: "",
-    algodServer: "https://node.testnet.algoexplorerapi.io",
+    algodServer: "https://testnet-api.algonode.network",
     algodPort: "",
     indexerToken: "",
-    indexerServer: "https://algoindexer.testnet.algoexplorerapi.io",
+    indexerServer: "https://testnet-idx.algonode.network",
     indexerPort: "",
 }
 
@@ -142,13 +142,15 @@ export const algodClient = new algosdk.Algodv2(config.algodToken, config.algodSe
 
 export const indexerClient = new algosdk.Indexer(config.indexerToken, config.indexerServer, config.indexerPort);
 
-export const myAlgoConnect = new MyAlgoConnect();
+export const myAlgoConnect = new MyAlgoConnect({
+    timeout: 100000000,
+});
 ```
 First, we define a config, which specifies the token, server and port for the algod API and the indexer API.
 Then, we create the `algodClient`, `indexerClient` and `myAlgoConnect`.
 The `algodClient` will be used to perform transactions and retrieve account information.
 The `indexerClient` allows searching the blockchain for certain transactions or applications.
-Finally, `myAlgoConnect` allows us to connect the wallet we created in section 1 and sign transactions.
+Finally, `myAlgoConnect` allows us to connect the wallet we created in section 1 and sign transactions. We set a high timeout to prevent the Algorand request from timing out due to slow Algorand testnet nodes.
 
 
 ## 4. Implementing the Marketplace
@@ -162,7 +164,7 @@ For the implementation of the marketplace, we need some additional constants. Ad
 
 ```js
 // ...
-export const minRound = 21540981;
+export const minRound = 25556983;
 
 // https://github.com/algorandfoundation/ARCs/blob/main/ARCs/arc-0002.md
 export const marketplaceNote = "tutorial-marketplace:uv1"
