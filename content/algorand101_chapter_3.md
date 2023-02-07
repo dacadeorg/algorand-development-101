@@ -1,11 +1,11 @@
 In this learning module, we will follow a tutorial to build the frontend for a marketplace contract.
-This tutorial assumes that you have already completed the [Connect a React Dapp to Algorand](/zrXXmmJpS_Sa-4x6c7bV4w)  learning module and continue in the same project.
+This tutorial assumes that you have already completed the [Connect a React Dapp to Algorand](/communities/algorand/courses/algorand-101/learning-modules/ccb63e1d-adae-4bba-a6af-2ee815337224)  learning module and continue in the same project.
 
 ### Prerequisites
 
 - [Node JS](https://nodejs.org/en/download/) - Please ensure you have Node.js v16 or higher installed.
 - You should have a basic understanding of [React](https://reactjs.org/): know how to use JSX, props, state, lifecycle methods, and hooks.
-- You should have followed the [Connect a React Dapp to Algorand](/zrXXmmJpS_Sa-4x6c7bV4w) learning module and have `react` v17.0.2, `react-scripts` v4.0.3, `algosdk` and `@randlabs/myalgo-connect` installed.
+- You should have followed the [Connect a React Dapp to Algorand](/communities/algorand/courses/algorand-101/learning-modules/ccb63e1d-adae-4bba-a6af-2ee815337224) learning module and have `react` v17.0.2, `react-scripts` v4.0.3, `algosdk` and `@randlabs/myalgo-connect` installed.
 
 ### Tech Stack
 
@@ -57,7 +57,7 @@ reportWebVitals();
 
 ### 1.2 utils
 
-The `src/utils/` directory should look like this if you followed the [Connect a React Dapp to Algorand](/zrXXmmJpS_Sa-4x6c7bV4w) learning module:
+The `src/utils/` directory should look like this if you followed the [Connect a React Dapp to Algorand](/communities/algorand/courses/algorand-101/learning-modules/ccb63e1d-adae-4bba-a6af-2ee815337224) learning module:
 
 ```
 ├── utils
@@ -127,7 +127,7 @@ import coverImg from "./assets/img/sandwich.jpg"
 
 We import the `Wallet` and `Cover` components and the `coverImg` image file. All of which have not been created yet. We also import our `algodClient` and `myAlgoConnect` from `src/utils/constants.js`
 
-For now, the `Notification` and `Products` components will remain uncommented as we will implement them later.
+For now, the `Notification` and `Products` components will remain commented as we will implement them later.
 
 Let's create our `App` component now:
 
@@ -380,7 +380,7 @@ export default Wallet;
 
 We receive the `address`, the account `name`, the user balance (`amount`), and the `symbol` of the currency we display as props. We also receive a `disconnect` function to log out of the wallet. As described earlier, these are passed from the `App` component.
 
-Now we should be ready to run our dapp and see if we can log in, log out, and see our balance and address. This only works if you have a created a MyAlgo Wallet account with funding on it, as descriped in our [Connect a React Dapp to Algorand](/zrXXmmJpS_Sa-4x6c7bV4w) learning module.
+Now we should be ready to run our dapp and see if we can log in, log out, and see our balance and address. This only works if you have a created a MyAlgo Wallet account with funding on it, as descriped in our [Connect a React Dapp to Algorand](/communities/algorand/courses/algorand-101/learning-modules/ccb63e1d-adae-4bba-a6af-2ee815337224) learning module.
 
 Run the dapp:
 
@@ -526,7 +526,7 @@ import {Row} from "react-bootstrap";
 
 We import the `AddProduct` and `Product` components that we will create later.
 We also import the `Loader` and `NotificationSuccess` and `NotificationError` components from the `utils` directory.
-Finally, we import the `buyProductAction`, `createProductAction`,  `deleteProductAction` and `getProductsAction` utility functions from the `src/utils/marketplace.js` file we created in the [Connect a React Dapp to Algorand](/zrXXmmJpS_Sa-4x6c7bV4w) learning module.
+Finally, we import the `buyProductAction`, `createProductAction`,  `deleteProductAction` and `getProductsAction` utility functions from the `src/utils/marketplace.js` file we created in the [Connect a React Dapp to Algorand](/communities/algorand/courses/algorand-101/learning-modules/ccb63e1d-adae-4bba-a6af-2ee815337224) learning module.
 
 Let's create our main `Products` component and a `getProducts` function, which we use to fetch the list of products:
 
@@ -607,7 +607,7 @@ Also, we create a `buyProduct` function:
 //...
 ```
 
-We need the `product` and `count` (how many products will be bought) and call the `buyProductAction` utility function to buy the product. We the product was bought successfully, we fetch the products again and display a success message or an error message if the product could not be bought.
+We need the `product` and `count` (how many products will be bought) and call the `buyProductAction` utility function to buy the product. When the product was bought successfully, we fetch the products again and display a success message or an error message if the product could not be bought.
 
 Finally, we create a `deleteProduct` function:
 ```js

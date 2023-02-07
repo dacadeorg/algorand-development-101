@@ -2,7 +2,7 @@ In this learning module, we will follow a tutorial to connect a React app to the
 
 ### Prerequisites
 
-- You should have created an Algorand TEAL smart contract for the marketplace as described in our [Smart Contract Development](/CQV5jnJgT_2QfOK8sPjjpw) learning module.
+- You should have created an Algorand TEAL smart contract for the marketplace as described in our [Smart Contract Development](/communities/algorand/courses/algorand-101/learning-modules/90c371fa-1f76-4ca3-aa68-5dfb06d32e0f) learning module.
 -  Please make sure you have [Node JS](https://nodejs.org/en/download/) v16 or higher installed.
 - You should have a basic understanding of [React](https://reactjs.org/): know how to use JSX, props, state, lifecycle methods, and hooks.
 
@@ -107,7 +107,7 @@ Also, we will install the `@randlabs/myalgo-connect` library, which we will use 
 npm install @randlabs/myalgo-connect
 ```
 
-Finally, we will install `raw-loader`, which we will use to import the smart contract TEAL files which we created in the [Smart Contract Development](/CQV5jnJgT_2QfOK8sPjjpw) learning module:
+Finally, we will install `raw-loader`, which we will use to import the smart contract TEAL files which we created in the [Smart Contract Development](/communities/algorand/courses/algorand-101/learning-modules/90c371fa-1f76-4ca3-aa68-5dfb06d32e0f) learning module:
 
 ```bash
 npm install raw-loader --save-dev
@@ -155,7 +155,7 @@ Finally, `myAlgoConnect` allows us to connect the wallet we created in section 1
 Now that we have the configuration for communicating with the Algorand APIs, we can implement the interactions with the marketplace.
 
 ### 4.1 Smart contracts
-First we create a `contracts` folder in the `src` directory and copy our `marketplace_approval.teal` and `marketplace_clear.teal` created in the [Smart Contract Development](/CQV5jnJgT_2QfOK8sPjjpw) learning module into the `src/contracts` directory.
+First we create a `contracts` folder in the `src` directory and copy our `marketplace_approval.teal` and `marketplace_clear.teal` created in the [Smart Contract Development](/communities/algorand/courses/algorand-101/learning-modules/90c371fa-1f76-4ca3-aa68-5dfb06d32e0f) learning module into the `src/contracts` directory.
 
 ### 4.2 Additional constants
 For the implementation of the marketplace, we need some additional constants. Add the following to `src/utils/constants.js`
@@ -176,11 +176,11 @@ export const numGlobalBytes = 3; // Global variables stored as Bytes: name, desc
 ```
 
 We define a `minRound` variable, which we will use later on to limit the search for transactions up to a specific round.
-Next, we define the a`marketplaceNote`, which is required to find products of the marketplace later on.
+Next, we define a `marketplaceNote`, which is required to find products of the marketplace later on.
 Finally, we define the values `numLocalInts`, `numLocalBytes`, `numGlobalInts` `numGlobalBytes`, which will specify the storage allocation of a smart contract.
 
 ### 4.3 Conversions
-Next, we create a `src/utils/conversions.js` file, that will contain functions which we will need for for converting strings to interact with the smart contract.
+Next, we create a `src/utils/conversions.js` file, that will contain functions which we will need for converting strings to interact with the smart contract.
 ```js
 export const base64ToUTF8String = (base64String) => {
     return Buffer.from(base64String, 'base64').toString("utf-8")
@@ -310,7 +310,7 @@ Then, the transaction is sent, and its confirmation is awaited.
 Finally, the `appId` of the newly created app is returned.
 
 #### 4.4.2 Buy product
-As a next step, we will implement a `buyProductAction` function which is used to buy a product that was added to the marketplace using the `createProductAction` function. In our marketplace smart contract developed in [Smart Contract Development](/CQV5jnJgT_2QfOK8sPjjpw) learning module buying a product is done by grouping two different transactions together in a group transaction. A `ApplicationCallTx` and a `PaymentTxn`. Please add the following to `src/utils/marketplace.js`:
+As a next step, we will implement a `buyProductAction` function which is used to buy a product that was added to the marketplace using the `createProductAction` function. In our marketplace smart contract developed in [Smart Contract Development](/communities/algorand/courses/algorand-101/learning-modules/90c371fa-1f76-4ca3-aa68-5dfb06d32e0f) learning module buying a product is done by grouping two different transactions together in a group transaction. A `ApplicationCallTx` and a `PaymentTxn`. Please add the following to `src/utils/marketplace.js`:
 
 ```js
 //...
@@ -559,4 +559,4 @@ And you should see something like this:
 
 ![](https://i.imgur.com/jKdyJLU.gif)
 
-Great! Now you can see the products in the console. Continue the next learning module to learn how to build the fronted components for your marketplace dapp.
+Great! Now you can see the products in the console. Continue the next learning module to learn how to build the frontend components for your marketplace dapp.
