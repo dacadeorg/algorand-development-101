@@ -21,7 +21,7 @@ We will use the following tech stack:
 Since we already have the important dependencies installed, we now only need to add our dependencies for the frontend, styling and formatting numbers:
 
 ```bash
-npm install react-bootstrap bootstrap bootstrap-icons prop-types react-jazzicon bignumber.js
+npm install react-bootstrap bootstrap bootstrap-icons prop-types react-identicons buffer bignumber.js
 # and separately, as the latest version of react-toastify is buggy
 npm install react-toastify@9.0.3 --save-exact
 ```
@@ -290,12 +290,12 @@ The identicon component will be used to display a visual representation of a wal
 Create a `utils` folder in the `components` directory and create a `src/components/utils/Identicon.jsx` file with the following code:
 
 ```js
-import Jazzicon from "react-jazzicon";
+import Identicon from 'react-identicons';
 import PropTypes from "prop-types";
 
-const Identicon = ({size, address, ...rest}) => (
+const AddressIdenticon = ({size, address, ...rest}) => (
     <div {...rest} style={{width: `${size}px`, height: `${size}px`}}>
-        <Jazzicon diameter={size} seed={parseInt(address.slice(2, 10), 16)}/>
+        <Identicon string={address} size={30}  />
     </div>
 );
 
@@ -304,7 +304,7 @@ Identicon.propTypes = {
     address: PropTypes.string.isRequired
 };
 
-export default Identicon;
+export default AddressIdenticon;
 ```
 
 We receive a `size` and account `address` which will be used to create the identicon. To modify the components' classes and style from where the component is used, we also take additional props as `...rest`.
@@ -535,24 +535,25 @@ Let's create our main `Products` component and a `getProducts` function, which w
 const Products = ({address, fetchBalance}) => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(false);
-    
+
     const getProducts = async () => {
+      try {
         setLoading(true);
-        getProductsAction()
-            .then(products => {
-                if (products) {
-                    setProducts(products);
-                }
-            })
-            .catch(error => {
-                console.log(error);
-            })
-            .finally(_ => {
-                setLoading(false);
-            });
+        const products = await getProductsAction()
+        if (!products) {
+          return
+        }
+  
+        setProducts(products);
+      } catch (e) {
+        console.log({e})
+      } finally {
+        setLoading(false);
+      }
     };
 
-    useEffect(() => {
+
+  useEffect(() => {
         getProducts();
     }, []);
 //...
@@ -567,20 +568,20 @@ Next we create the `createProduct` function:
 
 ```js
 //...
-	const createProduct = async (data) => {
-	    setLoading(true);
-	    createProductAction(address, data)
-	        .then(() => {
-	            toast(<NotificationSuccess text="Product added successfully."/>);
-	            getProducts();
-	            fetchBalance(address);
-	        })
-	        .catch(error => {
-	            console.log(error);
-	            toast(<NotificationError text="Failed to create a product."/>);
-	            setLoading(false);
-	        })
-	};
+    const createProduct = async (data) => {
+      try {
+        setLoading(true);
+        await createProductAction(address, data);
+        toast(<NotificationSuccess text="Product added successfully."/>);
+        await getProducts();
+        await fetchBalance(address);
+      } catch (error) {
+        console.log(error);
+        toast(<NotificationError text={error?.message || "Failed to create a product."}/>);
+      }finally {
+        setLoading(false);
+      }
+    };
 //...
 ```
 
@@ -591,19 +592,19 @@ Also, we create a `buyProduct` function:
 ```js
 //...
 	const buyProduct = async (product, count) => {
-	    setLoading(true);
-	    buyProductAction(address, product, count)
-	        .then(() => {
-	            toast(<NotificationSuccess text="Product bought successfully"/>);
-	            getProducts();
-	            fetchBalance(address);
-	        })
-	        .catch(error => {
-	            console.log(error)
-	            toast(<NotificationError text="Failed to purchase product."/>);
-	            setLoading(false);
-	        })
-	};
+      try {
+        setLoading(true);
+        await createProductAction(address, data);
+        toast(<NotificationSuccess text="Product added successfully."/>);
+        await getProducts();
+        await fetchBalance(address);
+      } catch (error) {
+        console.log(error);
+        toast(<NotificationError text={error?.message || "Failed to create a product."}/>);
+      } finally {
+        setLoading(false);
+      }
+    };
 //...
 ```
 
@@ -613,18 +614,18 @@ Finally, we create a `deleteProduct` function:
 ```js
 //...
     const deleteProduct = async (product) => {
-        setLoading(true);
-        deleteProductAction(address, product.appId)
-            .then(() => {
-                toast(<NotificationSuccess text="Product deleted successfully"/>);
-                getProducts();
-                fetchBalance(address);
-            })
-            .catch(error => {
-                console.log(error)
-                toast(<NotificationError text="Failed to delete product."/>);
-                setLoading(false);
-            })
+        try {
+          setLoading(true);
+          await deleteProductAction(address, product.appId);
+          toast(<NotificationSuccess text="Product deleted successfully"/>);
+          getProducts();
+          fetchBalance(address);
+        } catch (error) {
+          console.log(error)
+          toast(<NotificationError text="Failed to delete product."/>);
+        } finally {
+          setLoading(false);
+        }
     };
 //...
 ```

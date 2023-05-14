@@ -164,7 +164,7 @@ For the implementation of the marketplace, we need some additional constants. Ad
 
 ```js
 // ...
-export const minRound = 25556983;
+export const minRound = 29556983;
 
 // https://github.com/algorandfoundation/ARCs/blob/main/ARCs/arc-0002.md
 export const marketplaceNote = "tutorial-marketplace:uv1"
@@ -212,6 +212,7 @@ import {
 import approvalProgram from "!!raw-loader!../contracts/marketplace_approval.teal";
 import clearProgram from "!!raw-loader!../contracts/marketplace_clear.teal";
 import {base64ToUTF8String, utf8ToBase64String} from "./conversions";
+global.Buffer = global.Buffer || require('buffer').Buffer
 
 class Product {
     constructor(name, image, description, price, sold, appId, owner) {
@@ -244,6 +245,10 @@ const compileProgram = async (programSource) => {
 // CREATE PRODUCT: ApplicationCreateTxn
 export const createProductAction = async (senderAddress, product) => {
     console.log("Adding product...")
+
+    if(product.image?.length > 30) {
+        throw new Error("Image text is too long. Try a shorter url")
+    }
 
     let params = await algodClient.getTransactionParams().do();
     params.fee = algosdk.ALGORAND_MIN_TX_FEE;
