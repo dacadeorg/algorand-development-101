@@ -591,20 +591,20 @@ Also, we create a `buyProduct` function:
 
 ```js
 //...
-	const buyProduct = async (product, count) => {
-      try {
-        setLoading(true);
-        await createProductAction(address, data);
-        toast(<NotificationSuccess text="Product added successfully."/>);
-        await getProducts();
-        await fetchBalance(address);
-      } catch (error) {
-        console.log(error);
-        toast(<NotificationError text={error?.message || "Failed to create a product."}/>);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const buyProduct = async (product, count) => {
+    try {
+      setLoading(true);
+      await buyProductAction(address, product, count);
+      toast(<NotificationSuccess text="Product bought successfully"/>);
+      getProducts();
+      fetchBalance(address);
+    } catch (error) {
+      console.log(error)
+      toast(<NotificationError text="Failed to purchase product."/>);
+    } finally {
+      setLoading(false);
+    }
+  };
 //...
 ```
 
